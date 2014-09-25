@@ -9,16 +9,16 @@
     transform: translateX(0);
   }
   45% {
-    -webkit-transform: translateX(10%);
-    transform: translateX(10%);
+    -webkit-transform: translateX(25%);
+    transform: translateX(25%);
   }
   50% {
-    -webkit-transform: translateX(-10%);
-    transform: translateX(-10%);
+    -webkit-transform: translateX(-25%);
+    transform: translateX(-25%);
   }
   53% {
-    -webkit-transform: translateX(3%);
-    transform: translateX(3%);
+    -webkit-transform: translateX(10%);
+    transform: translateX(10%);
   }
   60% {
     -webkit-transform: translateX(0);
@@ -41,19 +41,19 @@
     transform: translateX(0);
   }
   45% {
+    -ms-transform: translateX(25%);
+    -webkit-transform: translateX(25%);
+    transform: translateX(25%);
+  }
+  50% {
+    -ms-transform: translateX(-25%);
+    -webkit-transform: translateX(-25%);
+    transform: translateX(-25%);
+  }
+  53% {
     -ms-transform: translateX(10%);
     -webkit-transform: translateX(10%);
     transform: translateX(10%);
-  }
-  50% {
-    -ms-transform: translateX(-10%);
-    -webkit-transform: translateX(-10%);
-    transform: translateX(-10%);
-  }
-  53% {
-    -ms-transform: translateX(3%);
-    -webkit-transform: translateX(3%);
-    transform: translateX(3%);
   }
   60% {
     -ms-transform: translateX(0);
@@ -90,10 +90,6 @@ html, body {
           user-select: none;
   -webkit-user-drag: none;
   max-width: 100%;
-}
-
-.gs-drag {
-  cursor: move;
 }
 
 .gs-cursor {
@@ -137,4 +133,13 @@ html, body {
           transition: none;
   -webkit-animation: none;
           animation: none;
+}
+.gs-touch .gs-cursor {
+  -webkit-transition: all 100ms ease-in;
+          transition: all 100ms ease-in;
+}
+.gs-touch.active .gs-cursor {
+  -webkit-transform: scale(0);
+      -ms-transform: scale(0);
+          transform: scale(0);
 }

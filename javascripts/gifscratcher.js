@@ -14,21 +14,23 @@
     init : function (el, settings) {
       var _ = this;
 
-      _.settings       = $.extend($.fn.gifscratcher.defaults, settings);
-      _.preloadImages  = [];
+      _.settings          = $.extend($.fn.gifscratcher.defaults, settings);
+      _.preloadImages     = [];
 
-      _.$el            = $(el);
-      _.$image         = _.$el.find('img');
-      _.elWidth        = 0;
-      _.elHeight       = 0;
-      _.elPos          = _.$el.offset();
+      _.$el               = $(el);
+      _.$image            = _.$el.find('img');
+      _.elWidth           = 0;
+      _.elHeight          = 0;
+      _.elPos             = _.$el.offset();
+      _.iAuto             = 0;
+      _.oldFrame          = 0;
 
-      _.iAuto          = 0;
-      _.oldFrame       = 0;
-      _.touchOnThis    = false;
-      _.isHovering     = false;
-      _.stopOnHover    = false;
-      _.stoppedByHover = false;
+      _.touchIsActive     = false;
+      _.isHovering        = false;
+      _.isTouchDevice     = false;
+      _.stopOnHover       = false;
+      _.stoppedByHover    = false;
+      _.cursorInteraction = true;
 
       _.$image.load(function () {
         _.elWidth  = _.$el.width();
@@ -39,48 +41,60 @@
         _.$el.addClass('gifscratcher');
         _.$image.addClass('gs-img');
 
-        _.preload() // Preload images
-         .resize()  // Listen for resize
-         .hover();  // Listen for hover
+        _.preload(); // Preload images
+        _.resize();  // Listen for resize
+
+         // Don't add a custom cursor for autoplaying GIFs
+         if (_.settings.interaction === 'auto') {
+          _.settings.cursor = false;
+         }
+
+         _.addCursor(); // Add custom cursor
 
         // Test for touch device.
         // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
-        if ( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && _.settings.interaction !== 'auto') {
+          _.cursorInteraction = false;
+          _.isTouchDevice     = true;
+          _.$el.addClass('gs-touch');
           _.touchInteraction();
+          _.touch(); // Listen for touch
         } else {
-          if (_.settings.interaction === 'auto') {
-            _.settings.cursor = false;
-          }
-          _.addCursor();
-
           switch (_.settings.interaction) {
             // Hover
             case 'hover':
+              _.$el.addClass('gs-hover');
               _.hoverInteraction();
             break;
 
             // Drag
             case 'drag':
+              _.$el.addClass('gs-drag');
               _.dragInteraction();
             break;
 
             // Auto
             case 'auto':
+              _.$el.addClass('gs-auto');
               _.auto();
             break;
 
             // Auto with hover
             case 'autoWithHover':
               _.stopOnHover = true;
+              _.$el.addClass('gs-auto-hover');
               _.auto().hoverInteraction();
             break;
 
             // Auto with drag
             case 'autoWithDrag':
               _.stopOnHover = true;
+              _.$el.addClass('gs-auto-drag');
               _.auto().dragInteraction();
             break;
           }
+
+          _.hover(); // Listen for hover
         }
     }
 
@@ -138,16 +152,14 @@
     touchInteraction : function () {
       var _ = this;
 
-      _.$image.addClass('gs-touch');
-
       _.$el.on('touchstart touchend', function (e) {
-        _.touchOnThis = (e.type === 'touchstart') ? true : false;
+        _.touchIsActive = (e.type === 'touchstart') ? true : false;
       });
 
       $(window).on('touchmove', function (ev) {
         var e = ev.originalEvent;
 
-        if (_.touchOnThis) {
+        if (_.touchIsActive) {
           e.preventDefault();
           _.play(e.pageX - _.elPos.left);
         }
@@ -163,8 +175,6 @@
     hoverInteraction : function () {
       var _ = this;
 
-      _.$image.addClass('gs-hover');
-
       _.$el.on('mousemove', function (e) {
         _.play(e.pageX - _.elPos.left);
       });
@@ -179,8 +189,6 @@
     dragInteraction : function () {
       var _ = this,
           dragging = false;
-
-      _.$image.addClass('gs-drag');
 
       document.ondragstart = function () { return false; };
 
@@ -206,8 +214,6 @@
     auto : function () {
       var _ = this;
 
-      _.$image.addClass('gs-auto');
-
       _.timer = setInterval(function() {
         if (_.stopOnHover && _.isHovering) {
           _.stoppedByHover = true;
@@ -232,7 +238,7 @@
 
       $('body').on('mousemove', function (e) {
         if ((e.pageX >= _.elPos.left && e.pageX <= _.elPos.left + _.elWidth) && (e.pageY >= _.elPos.top && e.pageY <= _.elPos.top + _.elHeight)) {
-          if (_.$cursor) {
+          if (_.$cursor && _.cursorInteraction) {
             _.$cursor.css({
                left: e.pageX - _.elPos.left,
                top:  e.pageY - _.elPos.top
@@ -257,6 +263,26 @@
               _.stoppedByHover = false;
             }
           }
+        }
+      });
+
+      return this;
+    },
+
+    /**
+     * Handle touch
+     * @return {object}
+     */
+    touch : function () {
+      var _ = this;
+
+      _.$el.on('touchstart touchend', function (e) {
+        if (!_.isHovering) {
+          _.$el.addClass('active');
+          _.isHovering = true;
+        } else {
+          _.$el.removeClass('active');
+          _.isHovering = false;
         }
       });
 

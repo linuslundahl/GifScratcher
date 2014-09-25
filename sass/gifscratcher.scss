@@ -3,9 +3,9 @@
 @include keyframes(pulse_animation) {
   from { @include transform(translateX(0)); }
   43% { @include transform(translateX(0)); }
-  45% { @include transform(translateX(10%)); }
-  50% { @include transform(translateX(-10%)); }
-  53% { @include transform(translateX(3%)); }
+  45% { @include transform(translateX(25%)); }
+  50% { @include transform(translateX(-25%)); }
+  53% { @include transform(translateX(10%)); }
   60% { @include transform(translateX(0)); }
   to { @include transform(translateX(0)); }
 }
@@ -34,16 +34,12 @@ html, body {
   max-width: 100%;
 }
 
-.gs-drag {
-  cursor: move;
-}
-
 .gs-cursor {
-  animation: "pulse_animation" 3000ms infinite cubic-bezier(.17, .67, .42, 0);
+  animation: 'pulse_animation' 3000ms infinite cubic-bezier(.17, .67, .42, 0);
   background: #eee;
   background-clip: padding-box;
   border-radius: 50%;
-  border: 5px solid rgba(0, 0, 0, 0.25);
+  border: 5px solid rgba(#000, .25);
   height: 50px;
   left: 50%;
   margin: -30px 0 0 -30px;
@@ -73,8 +69,17 @@ html, body {
   }
 
   .active & {
-    transform: scale(0.6);
+    transform: scale(.6);
     transition: none;
     animation: none;
   }
+
+  .gs-touch & {
+    transition: all 100ms ease-in;
+  }
+
+  .gs-touch.active & {
+    transform: scale(0);
+  }
+
 }
