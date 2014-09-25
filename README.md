@@ -27,9 +27,11 @@ Then add the jQuery magic.
 
 Settings available.
 
-	images      : []      // Image array
-	interaction : boolean // 'hover', 'drag' or 'auto'
-	speed       : int     // Autoplay speed
+	{
+		images      : []     // Image array
+		interaction : string // 'hover', 'drag' or 'auto'
+		speed       : int    // Autoplay speed
+	}
 
 ### HELP
 
