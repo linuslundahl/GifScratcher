@@ -51,7 +51,7 @@ a:active {
 }
 
 p {
-  margin: 1em 0;
+  margin: .5em 0 1em;
 }
 
 h1,
@@ -71,6 +71,7 @@ h1 {
 
 h2 {
   font-size: 1.5em;
+  margin: 0 0 .5em;
 }
 
 h3 {
@@ -89,6 +90,7 @@ code {
   display: block;
   font-size: .8em;
   line-height: 150%;
+  margin: 1em 0;
   padding: .5em 0;
   text-align: left;
 }
