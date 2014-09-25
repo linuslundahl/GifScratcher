@@ -27,10 +27,9 @@ Then add the jQuery magic.
 
 Settings available.
 
-	images : []      // The images in the animation
-	auto   : boolean // Autoplay animation
-	drag   : boolean // Drag to scratch animation
-	speed  : int     // The autoplay speed
+	images      : []      // Image array
+	interaction : boolean // 'hover', 'drag' or 'auto'
+	speed       : int     // Autoplay speed
 
 ### HELP
 

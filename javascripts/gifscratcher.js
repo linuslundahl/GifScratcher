@@ -28,7 +28,6 @@
       _.oldFrame      = 0;
       _.touchOnThis   = false;
       _.isActive      = false;
-      _.isTouchDevice = false;
 
       _.$image.load(function () {
         _.elWidth  = _.$el.width();
@@ -38,31 +37,36 @@
       if (_.images) {
         _.$el.addClass('gifscratcher');
         _.$image.addClass('gifscratcher-img');
-        _.preload(_.images);
 
-        if (_.settings.auto === true) {
-          _.auto(_.settings.speed);
+        _.preload();
+        _.resize();
+        _.hover();
+
+        // Test for touch device.
+        // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
+        if ( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+          _.touchInteraction();
         } else {
-          _.resize();
-          _.hover();
+          switch (_.settings.interaction) {
+            // Hover
+            case 'hover':
+              _.addCursor();
+              _.hoverInteraction();
+            break;
 
-          // Test for smartphone browser.
-          // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
-          if ( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
-            _.touchInteraction();
-            _.isTouch = true;
-            _.$image.addClass('gifscratcher-touch');
-          } else if (_.settings.drag === true ){
-            _.addCursor();
-            _.dragInteraction();
-            _.$image.addClass('gifscratcher-drag');
-          } else {
-            _.addCursor();
-            _.hoverInteraction();
-            _.$image.addClass('gifscratcher-hover');
+            // Drag
+            case 'drag':
+              _.addCursor();
+              _.dragInteraction();
+            break;
+
+            // Auto
+            case 'auto':
+              _.auto();
+            break;
           }
         }
-      }
+    }
 
       return this;
     },
@@ -83,14 +87,14 @@
      * @param  {array}  images The array of image URLs.
      * @return {object}
      */
-    preload : function (images) {
+    preload : function () {
       var _ = this;
 
       if (!_.preloadImages.list) {
           _.preloadImages.list = [];
       }
 
-      for (var i = 0; i < images.length; i++) {
+      for (var i = 0; i < _.images.length; i++) {
         var img = new Image();
         img.onload = function () {
           var index = _.preloadImages.list.indexOf(this);
@@ -102,27 +106,49 @@
         };
 
         _.preloadImages.list.push(img);
-        img.src = images[i];
+        img.src = _.images[i];
       }
 
       return this;
     },
 
     /**
-     * Handles autoplaying of the images
-     * @param  {int}    speed The speed of the animation.
+     * Handles touch to interact with the animation.
      * @return {object}
      */
-    auto : function (speed) {
+    touchInteraction : function () {
       var _ = this;
 
-      _.timer = setInterval(function() {
-        _.iAuto++;
-        if (_.iAuto >= _.images.length) {
-          _.iAuto = 0;
+      _.$image.addClass('gifscratcher-touch');
+
+      _.$el.on('touchstart touchend', function (e) {
+        _.touchOnThis = (e.type === 'touchstart') ? true : false;
+      });
+
+      $(window).on('touchmove', function (ev) {
+        var e = ev.originalEvent;
+
+        if (_.touchOnThis) {
+          e.preventDefault();
+          _.play(e.pageX - _.elPos.left);
         }
-        _.switchFrame(_.iAuto);
-      }, speed);
+      });
+
+      return this;
+    },
+
+    /**
+     * Handles hover moving to interact with the animation.
+     * @return {[type]} [description]
+     */
+    hoverInteraction : function () {
+      var _ = this;
+
+      _.$image.addClass('gifscratcher-hover');
+
+      _.$el.on('mousemove', function (e) {
+        _.play(e.pageX - _.elPos.left);
+      });
 
       return this;
     },
@@ -134,6 +160,8 @@
     dragInteraction : function () {
       var _ = this,
           dragging = false;
+
+      _.$image.addClass('gifscratcher-drag');
 
       document.ondragstart = function () { return false; };
 
@@ -153,38 +181,21 @@
     },
 
     /**
-     * Handles hover moving to interact with the animation.
-     * @return {[type]} [description]
-     */
-    hoverInteraction : function () {
-      var _ = this;
-
-      _.$el.on('mousemove', function (e) {
-        _.play(e.pageX - _.elPos.left);
-      });
-
-      return this;
-    },
-
-    /**
-     * Handles touch to interact with the animation.
+     * Handles autoplaying of the images
      * @return {object}
      */
-    touchInteraction : function () {
+    auto : function () {
       var _ = this;
 
-      _.$el.on('touchstart touchend', function (e) {
-        _.touchOnThis = (e.type === 'touchstart') ? true : false;
-      });
+      _.$image.addClass('gifscratcher-auto');
 
-      $(window).on('touchmove', function (ev) {
-        var e = ev.originalEvent;
-
-        if (_.touchOnThis) {
-          e.preventDefault();
-          _.play(e.pageX - _.elPos.left);
+      _.timer = setInterval(function() {
+        _.iAuto++;
+        if (_.iAuto >= _.images.length) {
+          _.iAuto = 0;
         }
-      });
+        _.switchFrame(_.iAuto);
+      }, _.settings.speed);
 
       return this;
     },
@@ -285,9 +296,8 @@
   };
 
   $.fn.gifscratcher.defaults = {
-    images     : [],
-    speed      : 10,
-    drag       : false,
-    auto       : false
+    images      : [],
+    interaction : 'hover',
+    speed      : 10
   };
 })(jQuery);
