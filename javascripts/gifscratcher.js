@@ -14,55 +14,71 @@
     init : function (el, settings) {
       var _ = this;
 
-      _.settings      = $.extend($.fn.gifscratcher.defaults, settings);
-      _.images        = _.settings.images;
-      _.preloadImages = [];
+      _.settings       = $.extend($.fn.gifscratcher.defaults, settings);
+      _.preloadImages  = [];
 
-      _.$el           = $(el);
-      _.$image        = _.$el.find('img');
-      _.elWidth       = 0;
-      _.elHeight      = 0;
-      _.elPos         = _.$el.offset();
+      _.$el            = $(el);
+      _.$image         = _.$el.find('img');
+      _.elWidth        = 0;
+      _.elHeight       = 0;
+      _.elPos          = _.$el.offset();
 
-      _.iAuto         = 0;
-      _.oldFrame      = 0;
-      _.touchOnThis   = false;
-      _.isActive      = false;
+      _.iAuto          = 0;
+      _.oldFrame       = 0;
+      _.touchOnThis    = false;
+      _.isHovering     = false;
+      _.stopOnHover    = false;
+      _.stoppedByHover = false;
 
       _.$image.load(function () {
         _.elWidth  = _.$el.width();
         _.elHeight = _.$el.height();
       });
 
-      if (_.images) {
+      if (_.settings.images) {
         _.$el.addClass('gifscratcher');
-        _.$image.addClass('gifscratcher-img');
+        _.$image.addClass('gs-img');
 
-        _.preload();
-        _.resize();
-        _.hover();
+        _.preload() // Preload images
+         .resize()  // Listen for resize
+         .hover();  // Listen for hover
 
         // Test for touch device.
         // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
         if ( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
           _.touchInteraction();
         } else {
+          if (_.settings.interaction === 'auto') {
+            _.settings.cursor = false;
+          }
+          _.addCursor();
+
           switch (_.settings.interaction) {
             // Hover
             case 'hover':
-              _.addCursor();
               _.hoverInteraction();
             break;
 
             // Drag
             case 'drag':
-              _.addCursor();
               _.dragInteraction();
             break;
 
             // Auto
             case 'auto':
               _.auto();
+            break;
+
+            // Auto with hover
+            case 'autoWithHover':
+              _.stopOnHover = true;
+              _.auto().hoverInteraction();
+            break;
+
+            // Auto with drag
+            case 'autoWithDrag':
+              _.stopOnHover = true;
+              _.auto().dragInteraction();
             break;
           }
         }
@@ -77,7 +93,10 @@
     addCursor : function () {
       var _ = this;
 
-      _.$cursor = $('<div></div>').addClass('gifscratcher-cursor').appendTo(_.$el);
+      if (_.settings.cursor) {
+        _.$el.addClass('has-gs-cursor');
+        _.$cursor = $('<div></div>').addClass('gs-cursor').appendTo(_.$el);
+      }
 
       return this;
     },
@@ -94,7 +113,7 @@
           _.preloadImages.list = [];
       }
 
-      for (var i = 0; i < _.images.length; i++) {
+      for (var i = 0; i < _.settings.images.length; i++) {
         var img = new Image();
         img.onload = function () {
           var index = _.preloadImages.list.indexOf(this);
@@ -106,7 +125,7 @@
         };
 
         _.preloadImages.list.push(img);
-        img.src = _.images[i];
+        img.src = _.settings.images[i];
       }
 
       return this;
@@ -119,7 +138,7 @@
     touchInteraction : function () {
       var _ = this;
 
-      _.$image.addClass('gifscratcher-touch');
+      _.$image.addClass('gs-touch');
 
       _.$el.on('touchstart touchend', function (e) {
         _.touchOnThis = (e.type === 'touchstart') ? true : false;
@@ -144,7 +163,7 @@
     hoverInteraction : function () {
       var _ = this;
 
-      _.$image.addClass('gifscratcher-hover');
+      _.$image.addClass('gs-hover');
 
       _.$el.on('mousemove', function (e) {
         _.play(e.pageX - _.elPos.left);
@@ -161,7 +180,7 @@
       var _ = this,
           dragging = false;
 
-      _.$image.addClass('gifscratcher-drag');
+      _.$image.addClass('gs-drag');
 
       document.ondragstart = function () { return false; };
 
@@ -187,11 +206,15 @@
     auto : function () {
       var _ = this;
 
-      _.$image.addClass('gifscratcher-auto');
+      _.$image.addClass('gs-auto');
 
       _.timer = setInterval(function() {
+        if (_.stopOnHover && _.isHovering) {
+          _.stoppedByHover = true;
+          window.clearTimeout(_.timer);
+        }
         _.iAuto++;
-        if (_.iAuto >= _.images.length) {
+        if (_.iAuto >= _.settings.images.length) {
           _.iAuto = 0;
         }
         _.switchFrame(_.iAuto);
@@ -216,17 +239,23 @@
             });
           }
 
-          if (!_.isActive) {
+          if (!_.isHovering) {
             _.$el.addClass('active');
-            _.isActive = true;
+            _.isHovering = true;
           }
         } else {
           if (_.$cursor) {
             _.$cursor.removeAttr('style');
           }
-          if (_.isActive) {
+          if (_.isHovering) {
             _.$el.removeClass('active');
-            _.isActive = false;
+            _.isHovering = false;
+
+            if (_.stoppedByHover) {
+              _.iAuto = _.oldFrame;
+              _.auto();
+              _.stoppedByHover = false;
+            }
           }
         }
       });
@@ -258,7 +287,7 @@
     play : function (xcoord) {
       var _ = this;
 
-      _.switchFrame(Math.floor(xcoord / (Math.round((_.elWidth / _.images.length) * 100)/100)));
+      _.switchFrame(Math.floor(xcoord / (Math.round((_.elWidth / _.settings.images.length) * 100)/100)));
 
       return this;
     },
@@ -271,8 +300,8 @@
     switchFrame : function (frame) {
       var _ = this;
 
-      if (frame !== _.oldFrame && frame <= (_.images.length - 1)) {
-        _.$image.attr({src : _.images[frame]});
+      if (frame !== _.oldFrame && frame <= (_.settings.images.length - 1)) {
+        _.$image.attr({src : _.settings.images[frame]});
       }
 
       _.oldFrame = frame;
@@ -298,6 +327,7 @@
   $.fn.gifscratcher.defaults = {
     images      : [],
     interaction : 'hover',
-    speed      : 10
+    cursor      : true,
+    speed       : 30
   };
 })(jQuery);

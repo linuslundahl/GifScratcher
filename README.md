@@ -27,12 +27,14 @@ Then add the jQuery magic.
 
 Settings available.
 
-	{
-		images      : []     // Image array
-		interaction : string // 'hover', 'drag' or 'auto'
-		speed       : int    // Autoplay speed
-	}
-
+	images      : []      // Image array
+	interaction : string  // 'hover'         - Scratch on hover
+	                      // 'drag'          - Scratch on drag
+                          // 'auto'          - Autoplay
+                          // 'autoWithHover' - Autoplay with hover scratch
+                          // 'autoWithDrag'  - Autoplay with drag scratch
+	speed       : int     // Autoplay speed
+	cursor      : boolean // Add custom cursor
 ### HELP
 
 To extract every single frame from an animated GIF as individual JPEGs you can use ImageMagick in the terminal.

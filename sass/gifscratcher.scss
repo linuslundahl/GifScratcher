@@ -19,23 +19,26 @@ html, body {
 
 .gifscratcher {
   display: block;
-  cursor: none;
   overflow: hidden;
   position: relative;
+
+  &.has-gs-cursor {
+    cursor: none;
+  }
 }
 
-.gifscratcher-img {
+.gs-img {
   display: block;
   user-select: none;
   -webkit-user-drag: none;
   max-width: 100%;
 }
 
-.gifscratcher-drag {
+.gs-drag {
   cursor: move;
 }
 
-.gifscratcher-cursor {
+.gs-cursor {
   animation: "pulse_animation" 3000ms infinite cubic-bezier(.17, .67, .42, 0);
   background: #eee;
   background-clip: padding-box;
