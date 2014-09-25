@@ -1,0 +1,77 @@
+@import 'compass/css3';
+
+@include keyframes(pulse_animation) {
+  from { @include transform(translateX(0)); }
+  43% { @include transform(translateX(0)); }
+  45% { @include transform(translateX(10%)); }
+  50% { @include transform(translateX(-10%)); }
+  53% { @include transform(translateX(3%)); }
+  60% { @include transform(translateX(0)); }
+  to { @include transform(translateX(0)); }
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.gifscratcher {
+  display: block;
+  cursor: none;
+  overflow: hidden;
+  position: relative;
+}
+
+.gifscratcher-img {
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  max-width: 100%;
+}
+
+.gifscratcher-drag {
+  cursor: move;
+}
+
+.gifscratcher-cursor {
+  animation: "pulse_animation" 3000ms infinite cubic-bezier(.17, .67, .42, 0);
+  background: #eee;
+  background-clip: padding-box;
+  border-radius: 50%;
+  border: 5px solid rgba(0, 0, 0, 0.25);
+  height: 50px;
+  left: 50%;
+  margin: -30px 0 0 -30px;
+  position: absolute;
+  top: 50%;
+  transition: all 100ms ease-in;
+  width: 50px;
+
+  &::before, &::after {
+    border: 4px solid transparent;
+    content: '';
+    height: 0;
+    margin: -4px 0 0;
+    position: absolute;
+    top: 50%;
+    width: 0;
+  }
+
+  &::before {
+    border-right-color: #111;
+    left: 15%;
+  }
+
+  &::after {
+    border-left-color: #111;
+    right: 15%;
+  }
+
+  .active & {
+    transform: scale(0.6);
+    transition: none;
+    animation: none;
+  }
+}
