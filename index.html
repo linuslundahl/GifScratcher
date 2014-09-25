@@ -111,8 +111,8 @@
 
   </div>
 
-  <script src="javascripts/gifscratcher.min.js"></script>
-  <script>
+  <script src="javascripts/gifscratcher.min.js" defer></script>
+  <script defer>
     ;(function ($) {
       'use strict';
 
@@ -148,7 +148,8 @@
             path + '24.jpg',
             path + '25.jpg'
           ],
-          interaction : 'autoWithHover'
+          interaction : 'autoWithHover',
+          speed : 50
         });
 
         // Twitter
