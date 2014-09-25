@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="stylesheets/style.css">
   <link rel="stylesheet" href="stylesheets/gifscratcher.css">
 
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
 </head>
 <body>
 
@@ -96,6 +96,14 @@
       </p>
     </section>
 
+    <footer>
+      <div class="about">
+        Brought to you by <a href="http://unwi.se/">http://unwi.se/</a>.
+      </div>
+
+      <div class="twitter-share share"><a href="https://twitter.com/share" class="twitter-share-button" data-url="http://<?php print $_SERVER['HTTP_HOST']; ?>" data-via="linuslundahl">Tweet</a></div>
+    </footer>
+
   </div>
 
   <script src="javascripts/gifscratcher.min.js"></script>
@@ -136,6 +144,9 @@
             path + '25.jpg'
           ]
         });
+
+        // Twitter
+        !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');
       });
     })(jQuery);
   </script>

@@ -16,14 +16,14 @@ a,
 a:link,
 a:visited {
   color: $text;
-  padding: 5px 0;
+  border-bottom: 2px solid $yellow;
   text-decoration: none;
-  transition: all 200ms ease-in;
+  transition: all 100ms ease-in;
 }
 
 a:hover,
 a:active {
-  background-image: linear-gradient(to top, rgba(0,0,0,0) 11%, $yellow 11%, $yellow 20%, rgba(0,0,0,0) 20%);
+  border-bottom: 4px solid $yellow;
 }
 
 .button,
@@ -121,7 +121,8 @@ code pre {
   position: relative;
 }
 
-header {
+header,
+footer {
   margin: 0 0 2em;
   text-align: center;
 }
@@ -143,4 +144,8 @@ section {
   border-radius: 5px;
   margin: 0 auto;
   max-width: 500px;
+}
+
+.share {
+  margin: 1em 0;
 }
