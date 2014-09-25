@@ -1,0 +1,144 @@
+@import 'compass/reset';
+
+$text: #111;
+$yellow: #eab135;
+
+$sans-serif-font: avenir, helvetica, arial, sans-serif;
+$serif-font: 'Gentium Basic', serif;
+
+body {
+  background: #eee;
+  color: $text;
+  font: normal normal 1em / 150% $serif-font;
+}
+
+a,
+a:link,
+a:visited {
+  color: $text;
+  padding: 5px 0;
+  text-decoration: none;
+  transition: all 200ms ease-in;
+}
+
+a:hover,
+a:active {
+  background-image: linear-gradient(to top, rgba(0,0,0,0) 11%, $yellow 11%, $yellow 20%, rgba(0,0,0,0) 20%);
+}
+
+.button,
+.button:link,
+.button:visited {
+  background: none;
+  border-radius: .3em;
+  border: 2px solid $text;
+  color: $text;
+  display: inline-block;
+  font: normal 600 1em/100% $sans-serif-font;
+  letter-spacing: .15em;
+  margin: 1em 0;
+  padding: 1em .75em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 200ms, background-color 200ms, border 200ms;
+}
+
+.button:hover,
+.button:active {
+  color: $yellow;
+  border-color: $yellow;
+  transition: background-color 100ms, color 100ms, border 100ms;
+}
+
+p {
+  margin: 1em 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font: normal 800 1em/100% $sans-serif-font;
+  text-transform: uppercase;
+  margin: 1em 0 0;
+}
+
+h1 {
+  font-size: 2.5em;
+  letter-spacing: -1px;
+  margin: .5em 0 1em;
+}
+
+h2 {
+  font-size: 1.5em;
+}
+
+h3 {
+  font-size: 1.25em;
+}
+
+h4 {
+  font: normal 800 1em/150% $serif-font;
+}
+
+code {
+  background: #fff;
+  border: 1px solid $yellow;
+  border-left: 10px solid $yellow;
+  border-radius: 5px;
+  display: block;
+  font-size: .8em;
+  line-height: 150%;
+  padding: .5em 0;
+  text-align: left;
+}
+
+pre,
+.command {
+  background: #fff;
+  border: 1px solid $yellow;
+  border-radius: 5px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap !important;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+  display: inline-block;
+  padding: 0 1em;
+}
+
+code pre {
+  border: none;
+}
+
+.page {
+  margin: 0 auto;
+  max-width: 500px;
+  padding: 2em 1em;
+  position: relative;
+}
+
+header {
+  margin: 0 0 2em;
+  text-align: center;
+}
+
+section {
+  margin: 0 0 4em;
+}
+
+.headline {
+  margin: 0;
+}
+
+.tagline {
+  color: lighten($text, 35);
+  margin: -.15em 0 1em;
+}
+
+.target {
+  border-radius: 5px;
+  margin: 0 auto;
+  max-width: 500px;
+}

@@ -1,0 +1,196 @@
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+
+html {
+  line-height: 1;
+}
+
+ol, ul {
+  list-style: none;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+caption, th, td {
+  text-align: left;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+q, blockquote {
+  quotes: none;
+}
+q:before, q:after, blockquote:before, blockquote:after {
+  content: "";
+  content: none;
+}
+
+a img {
+  border: none;
+}
+
+article, aside, details, figcaption, figure, footer, header, hgroup, main, menu, nav, section, summary {
+  display: block;
+}
+
+body {
+  background: #eee;
+  color: #111;
+  font: normal normal 1em/150% "Gentium Basic", serif;
+}
+
+a,
+a:link,
+a:visited {
+  color: #111;
+  padding: 5px 0;
+  text-decoration: none;
+  -webkit-transition: all 200ms ease-in;
+          transition: all 200ms ease-in;
+}
+
+a:hover,
+a:active {
+  background-image: -webkit-linear-gradient(bottom, transparent 11%, #eab135 11%, #eab135 20%, transparent 20%);
+  background-image: linear-gradient(to top, transparent 11%, #eab135 11%, #eab135 20%, transparent 20%);
+}
+
+.button,
+.button:link,
+.button:visited {
+  background: none;
+  border-radius: .3em;
+  border: 2px solid #111;
+  color: #111;
+  display: inline-block;
+  font: normal 600 1em/100% avenir, helvetica, arial, sans-serif;
+  letter-spacing: .15em;
+  margin: 1em 0;
+  padding: 1em .75em;
+  text-decoration: none;
+  text-transform: uppercase;
+  -webkit-transition: color 200ms, background-color 200ms, border 200ms;
+          transition: color 200ms, background-color 200ms, border 200ms;
+}
+
+.button:hover,
+.button:active {
+  color: #eab135;
+  border-color: #eab135;
+  -webkit-transition: background-color 100ms, color 100ms, border 100ms;
+          transition: background-color 100ms, color 100ms, border 100ms;
+}
+
+p {
+  margin: 1em 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font: normal 800 1em/100% avenir, helvetica, arial, sans-serif;
+  text-transform: uppercase;
+  margin: 1em 0 0;
+}
+
+h1 {
+  font-size: 2.5em;
+  letter-spacing: -1px;
+  margin: .5em 0 1em;
+}
+
+h2 {
+  font-size: 1.5em;
+}
+
+h3 {
+  font-size: 1.25em;
+}
+
+h4 {
+  font: normal 800 1em/150% "Gentium Basic", serif;
+}
+
+code {
+  background: #fff;
+  border: 1px solid #eab135;
+  border-left: 10px solid #eab135;
+  border-radius: 5px;
+  display: block;
+  font-size: .8em;
+  line-height: 150%;
+  padding: .5em 0;
+  text-align: left;
+}
+
+pre,
+.command {
+  background: #fff;
+  border: 1px solid #eab135;
+  border-radius: 5px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap !important;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+  display: inline-block;
+  padding: 0 1em;
+}
+
+code pre {
+  border: none;
+}
+
+.page {
+  margin: 0 auto;
+  max-width: 500px;
+  padding: 2em 1em;
+  position: relative;
+}
+
+header {
+  margin: 0 0 2em;
+  text-align: center;
+}
+
+section {
+  margin: 0 0 4em;
+}
+
+.headline {
+  margin: 0;
+}
+
+.tagline {
+  color: #6a6a6a;
+  margin: -.15em 0 1em;
+}
+
+.target {
+  border-radius: 5px;
+  margin: 0 auto;
+  max-width: 500px;
+}

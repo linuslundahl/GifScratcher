@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Gif Scratcher</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href='http://fonts.googleapis.com/css?family=Gentium+Basic:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="stylesheets/style.css">
+  <link rel="stylesheet" href="stylesheets/gifscratcher.css">
+
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+</head>
+<body>
+
+  <div class="page">
+
+    <header>
+      <h1 class="headline">Gif Scratcher</h1>
+
+      <p class="tagline">
+        A lightweight (~4kb minified) jQuery plugin that allows you to scratch GIFs.
+      </p>
+
+      <a href="https://github.com/linuslundahl/GifScratcher" class="button">Download</a>
+    </header>
+
+    <section>
+      <h2>Demo</h2>
+
+      <div id="animation-1" class="target">
+        <img src="http://compost.unwi.se/github/animations/1/00.jpg">
+      </div>
+
+      Move your mouse over the GIF to scratch it. (GIF by <a href="http://juliendouvier.tumblr.com">Julien Douvier</a>)
+    </section>
+
+    <section>
+      <h2>Documentation</h2>
+
+      <p>
+        Add the first image in your animation to your HTML file.
+      </p>
+
+      <code>
+        <pre>&lt;div id="target" class="target"&gt;
+  &lt;img src="frames/00.jpg"&gt;
+&lt;/div&gt;</pre>
+      </code>
+
+      <p>
+        Then add the jQuery magic.
+      </p>
+
+      <code>
+      <pre>$(&quot;#target&quot;).gifscratcher({
+  images : [
+    'frames/00.jpg',
+    'frames/01.jpg',
+    'frames/02.jpg',
+    ...
+  ]
+});</pre>
+      </code>
+
+      <p>
+        Settings available.
+      </p>
+
+      <code>
+        <pre>images : []      // The images in the animation
+auto   : boolean // Autoplay animation
+drag   : boolean // Drag to scratch animation
+speed  : int     // The autoplay speed
+</pre>
+      </code>
+
+    </section>
+
+    <section>
+      <h2>Help</h2>
+
+      <p>
+        To extract every single frame from an animated GIF as individual JPEGs you can use ImageMagick in the terminal.
+      </p>
+
+      <p>
+        Install ImageMagick (OS X): <span class="command">brew install imagemagick</span>
+      </p>
+
+      <p>
+        Then run: <span class="command">convert FILENAME.gif -coalesce %02d.jpg</span> to extract the frames.
+      </p>
+    </section>
+
+  </div>
+
+  <script src="javascripts/gifscratcher.min.js"></script>
+  <script>
+    ;(function ($) {
+      'use strict';
+
+      $(function() {
+        var path = 'http://compost.unwi.se/github/animations/1/';
+
+        $("#animation-1").gifscratcher({
+          images : [
+            path + '00.jpg',
+            path + '01.jpg',
+            path + '02.jpg',
+            path + '03.jpg',
+            path + '04.jpg',
+            path + '05.jpg',
+            path + '06.jpg',
+            path + '07.jpg',
+            path + '08.jpg',
+            path + '09.jpg',
+            path + '10.jpg',
+            path + '11.jpg',
+            path + '12.jpg',
+            path + '13.jpg',
+            path + '14.jpg',
+            path + '15.jpg',
+            path + '16.jpg',
+            path + '17.jpg',
+            path + '18.jpg',
+            path + '19.jpg',
+            path + '20.jpg',
+            path + '21.jpg',
+            path + '22.jpg',
+            path + '23.jpg',
+            path + '24.jpg',
+            path + '25.jpg'
+          ]
+        });
+      });
+    })(jQuery);
+  </script>
+</body>
+</html>
