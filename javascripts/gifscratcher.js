@@ -6,6 +6,31 @@
 ;(function ($) {
   'use strict';
 
+  var lastTime = 0,
+      vendors = ['ms', 'moz', 'webkit', 'o'];
+
+  for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+    window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+    window.cancelAnimationFrame  = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
+  }
+
+  if (!window.requestAnimationFrame) {
+    window.requestAnimationFrame = function(callback) {
+      var currTime = new Date().getTime();
+      var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+      var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+        timeToCall);
+      lastTime = currTime + timeToCall;
+      return id;
+    };
+  }
+
+  if (!window.cancelAnimationFrame) {
+    window.cancelAnimationFrame = function(id) {
+      clearTimeout(id);
+    };
+  }
+
   var GifScratcher = function (el, settings) {
     this.init(el, settings);
   };
@@ -14,95 +39,104 @@
     init : function (el, settings) {
       var _ = this;
 
-      _.settings          = $.extend($.fn.gifscratcher.defaults, settings);
-      _.preloadImages     = [];
+      _.settings = $.extend({
+        sprite      : '',
+        frames      : 0,
+        interaction : 'hover',
+        cursor      : true,
+        speed       : 5
+      }, settings);
 
       _.$el               = $(el);
       _.$image            = _.$el.find('img');
-      _.elWidth           = 0;
-      _.elHeight          = 0;
+      _.elSize            = {w: 0, h: 0};
       _.elPos             = _.$el.offset();
-      _.iAuto             = 0;
       _.oldFrame          = 0;
+      _.iAuto             = 0;
 
       _.touchIsActive     = false;
       _.isHovering        = false;
-      _.isTouchDevice     = false;
       _.stopOnHover       = false;
-      _.stoppedByHover    = false;
       _.cursorInteraction = true;
 
-      _.$image.load(function () {
-        _.elWidth  = _.$el.width();
-        _.elHeight = _.$el.height();
+      _.$image.on('load', function () {
+        _.elSize = {w: _.$el.width(), h: _.$el.height()};
       });
 
-      if (_.settings.images) {
+      if (_.settings.sprite) {
         _.$el.addClass('gifscratcher');
         _.$image.addClass('gs-img');
 
-        _.preload(); // Preload images
-        _.resize();  // Listen for resize
+        // Preload sprite image
+        _.preload(function () {
+          // Listen for resize
+          _.resize();
 
-         // Don't add a custom cursor for autoplaying GIFs
-         if (_.settings.interaction === 'auto') {
-          _.settings.cursor = false;
-         }
+          // Do an initial resize for responsive purposes
+          $(window).resize();
 
-         _.addCursor(); // Add custom cursor
+           // Don't add a custom cursor for autoplaying GIFs
+           if (_.settings.interaction === 'auto') {
+            _.settings.cursor = false;
+           }
 
-        // Test for touch device.
-        // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
-        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && _.settings.interaction !== 'auto') {
-          _.cursorInteraction = false;
-          _.isTouchDevice     = true;
-          _.$el.addClass('gs-touch');
-          _.touchInteraction();
-          _.touch(); // Listen for touch
-        } else {
-          switch (_.settings.interaction) {
-            // Hover
-            case 'hover':
-              _.$el.addClass('gs-hover');
-              _.hoverInteraction();
-            break;
+           // Add custom cursor
+           _.addCursor();
 
-            // Drag
-            case 'drag':
-              _.$el.addClass('gs-drag');
-              _.dragInteraction();
-            break;
+          // Test for touch device.
+          // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
+          if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && _.settings.interaction !== 'auto') {
+            _.cursorInteraction = false;
+            _.$el.addClass('gs-touch');
+            _.touchInteraction();
+            _.touch(); // Listen for touch
+          } else {
+            switch (_.settings.interaction) {
+              // Hover
+              case 'hover':
+                _.$el.addClass('gs-hover');
+                _.hoverInteraction();
+              break;
 
-            // Auto
-            case 'auto':
-              _.$el.addClass('gs-auto');
-              _.auto();
-            break;
+              // Drag
+              case 'drag':
+                _.$el.addClass('gs-drag');
+                _.dragInteraction();
+              break;
 
-            // Auto with hover
-            case 'autoWithHover':
-              _.stopOnHover = true;
-              _.$el.addClass('gs-auto-hover');
-              _.auto().hoverInteraction();
-            break;
+              // Auto
+              case 'auto':
+                _.$el.addClass('gs-auto');
+                _.auto();
+              break;
 
-            // Auto with drag
-            case 'autoWithDrag':
-              _.stopOnHover = true;
-              _.$el.addClass('gs-auto-drag');
-              _.auto().dragInteraction();
-            break;
+              // Auto with hover
+              case 'autoWithHover':
+                _.stopOnHover = true;
+                _.$el.addClass('gs-auto-hover');
+                _.auto().hoverInteraction();
+              break;
+
+              // Auto with drag
+              case 'autoWithDrag':
+                _.stopOnHover = true;
+                _.$el.addClass('gs-auto-drag');
+                _.auto().dragInteraction();
+              break;
+            }
+
+            // Listen for hover
+            _.hover();
           }
-
-          _.hover(); // Listen for hover
-        }
-    }
+        });
+      }
 
       return this;
     },
 
     /**
      * Appends a cursor div to the element.
+     * @return {object}
      */
     addCursor : function () {
       var _ = this;
@@ -116,31 +150,21 @@
     },
 
     /**
-     * Preloads images in the array.
-     * @param  {array}  images The array of image URLs.
+     * Preloads the sprite.
+     * @param  {string}  The sprite image URL.
      * @return {object}
      */
-    preload : function () {
+    preload : function (callback) {
       var _ = this;
 
-      if (!_.preloadImages.list) {
-          _.preloadImages.list = [];
-      }
-
-      for (var i = 0; i < _.settings.images.length; i++) {
-        var img = new Image();
-        img.onload = function () {
-          var index = _.preloadImages.list.indexOf(this);
-          if (index !== -1) {
-            // remove this one from the array once it's loaded
-            // for memory consumption reasons
-            _.preloadImages.splice(index, 1);
-          }
-        };
-
-        _.preloadImages.list.push(img);
-        img.src = _.settings.images[i];
-      }
+      var img = new Image();
+      img.src = _.settings.sprite;
+      img.onload = function () {
+        _.$image.attr({src : _.settings.sprite});
+        if ($.isFunction(callback)) {
+          callback();
+        }
+      };
 
       return this;
     },
@@ -212,19 +236,19 @@
      * @return {object}
      */
     auto : function () {
-      var _ = this;
+      var _ = this,
+          delay = 0,
+          auto;
 
-      _.timer = setInterval(function() {
-        if (_.stopOnHover && _.isHovering) {
-          _.stoppedByHover = true;
-          window.clearTimeout(_.timer);
+      auto = function () {
+        requestAnimationFrame(auto);
+        if ((_.stopOnHover && !_.isHovering) && delay === _.settings.speed) {
+          _.switchFrame(_.iAuto);
+          _.iAuto = (_.iAuto >= _.settings.frames - 1) ? 0 : _.iAuto+1;
         }
-        _.iAuto++;
-        if (_.iAuto >= _.settings.images.length) {
-          _.iAuto = 0;
-        }
-        _.switchFrame(_.iAuto);
-      }, _.settings.speed);
+        delay = (delay === _.settings.speed) ? 0 : delay+1;
+      };
+      auto();
 
       return this;
     },
@@ -237,7 +261,7 @@
       var _ = this;
 
       $('body').on('mousemove', function (e) {
-        if ((e.pageX >= _.elPos.left && e.pageX <= _.elPos.left + _.elWidth) && (e.pageY >= _.elPos.top && e.pageY <= _.elPos.top + _.elHeight)) {
+        if ((e.pageX >= _.elPos.left && e.pageX <= _.elPos.left + _.elSize.w) && (e.pageY >= _.elPos.top && e.pageY <= _.elPos.top + _.elSize.h)) {
           if (_.$cursor && _.cursorInteraction) {
             _.$cursor.css({
                left: e.pageX - _.elPos.left,
@@ -256,12 +280,7 @@
           if (_.isHovering) {
             _.$el.removeClass('active');
             _.isHovering = false;
-
-            if (_.stoppedByHover) {
-              _.iAuto = _.oldFrame;
-              _.auto();
-              _.stoppedByHover = false;
-            }
+            _.iAuto = _.oldFrame;
           }
         }
       });
@@ -276,58 +295,53 @@
     touch : function () {
       var _ = this;
 
-      _.$el.on('touchstart touchend', function (e) {
-        if (!_.isHovering) {
-          _.$el.addClass('active');
-          _.isHovering = true;
-        } else {
-          _.$el.removeClass('active');
-          _.isHovering = false;
-        }
+      _.$el.on('touchstart touchend', function () {
+        _.$el.toggleClass('active');
       });
 
       return this;
     },
 
     /**
-     * [resize description]
-     * @return {[type]} [description]
+     * Handle browser resizes for responsive purposes
+     * @return {object}
      */
     resize : function () {
       var _ = this;
 
       $(window).on('resize', function () {
-        _.elWidth  = _.$el.width();
-        _.elHeight = _.$el.height();
-        _.elPos    = _.$el.offset();
+        _.elSize = {w: _.$el.width(), h: _.$el.height()};
+        _.elPos  = _.$el.offset();
+        _.play(0);
+        _.$image.css({width : (_.settings.frames * _.elSize.w) + 'px'});
       });
 
       return this;
     },
 
     /**
-     * [play description]
-     * @param  {[type]} xcoord [description]
-     * @return {[type]}        [description]
+     * Calculates current frame and switches it
+     * @param  {int}    xcoord The x coordinate from the element
+     * @return {object}
      */
     play : function (xcoord) {
       var _ = this;
 
-      _.switchFrame(Math.floor(xcoord / (Math.round((_.elWidth / _.settings.images.length) * 100)/100)));
+      _.switchFrame(Math.floor(xcoord / (Math.round((_.elSize.w / _.settings.frames) * 100)/100)));
 
       return this;
     },
 
     /**
-     * [switchFrame description]
-     * @param  {[type]} xcoord [description]
-     * @return {[type]}        [description]
+     * Switches frame
+     * @param  {int}    frame The frame number to switch to
+     * @return {object}
      */
     switchFrame : function (frame) {
       var _ = this;
 
-      if (frame !== _.oldFrame && frame <= (_.settings.images.length - 1)) {
-        _.$image.attr({src : _.settings.images[frame]});
+      if (frame !== _.oldFrame && frame < _.settings.frames) {
+        _.$image.css({'margin-left' : '-' + (frame * _.elSize.w) + 'px'});
       }
 
       _.oldFrame = frame;
@@ -347,13 +361,7 @@
     }
     if (options === true) return instance;
     if ($.type(options) === 'string') instance[options]();
-    return this;
-  };
 
-  $.fn.gifscratcher.defaults = {
-    images      : [],
-    interaction : 'hover',
-    cursor      : true,
-    speed       : 30
+    return this;
   };
 })(jQuery);

@@ -11,34 +11,40 @@ https://linuslundahl.github.io/GifScratcher/
 Add the first image in your animation to your HTML file.
 
 	<div id="target" class="target">
-  		<img src="frames/00.jpg">
+  		<img src="animation-first.jpg">
 	</div>
 
 Then add the jQuery magic.
 
 	$("#target").gifscratcher({
-  		images : [
-  			'frames/00.jpg',
-  			'frames/01.jpg',
-  			'frames/02.jpg',
-  			...
-  		]
+  		sprite : 'animation.jpg',
+  		frames : 10
 	});
 
 Settings available.
 
-	images      : []      // Image array
+	sprite      : string  // Image sprite
+	frames      : int     // Number of frames in sprite
 	interaction : string  // 'hover'         - Scratch on hover
-	                      // 'drag'          - Scratch on drag
-                          // 'auto'          - Autoplay
-                          // 'autoWithHover' - Autoplay with hover scratch
-                          // 'autoWithDrag'  - Autoplay with drag scratch
+						  // 'drag'          - Scratch on drag
+						  // 'auto'          - Autoplay
+						  // 'autoWithHover' - Autoplay with hover scratch
+						  // 'autoWithDrag'  - Autoplay with drag scratch
 	speed       : int     // Autoplay speed
 	cursor      : boolean // Add custom cursor
+
 ### HELP
 
-To extract every single frame from an animated GIF as individual JPEGs you can use ImageMagick in the terminal.
+To extract every single frame from an animated GIF as individual JPEGs and create a sprite you can use ImageMagick in the terminal.
 
-Install ImageMagick (OS X): `brew install imagemagick`
+Install ImageMagick (OS X):
 
-Then run: `convert FILENAME.gif -coalesce %02d.jpg` to extract the frames.
+	$ brew install imagemagick
+
+To extract the frames run:
+
+	$ convert FILENAME.gif -coalesce %02d.jpg
+
+To create the final sprite run: 
+	
+	$ montage `ls ??.jpg` -tile NUMBER_OF_FRAMESx1 -geometry 500x284 FILENAME.jpg

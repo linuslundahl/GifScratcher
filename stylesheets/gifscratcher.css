@@ -89,7 +89,6 @@ html, body {
       -ms-user-select: none;
           user-select: none;
   -webkit-user-drag: none;
-  max-width: 100%;
 }
 
 .gs-cursor {
