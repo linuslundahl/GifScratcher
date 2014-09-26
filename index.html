@@ -47,7 +47,7 @@
 
       <code>
         <pre>&lt;div id="target" class="target"&gt;
-  &lt;img src="frames/00.jpg"&gt;
+  &lt;img src="animation-first.jpg"&gt;
 &lt;/div&gt;</pre>
       </code>
 
@@ -57,12 +57,8 @@
 
       <code>
       <pre>$(&quot;#target&quot;).gifscratcher({
-  images : [
-    'frames/00.jpg',
-    'frames/01.jpg',
-    'frames/02.jpg',
-    ...
-  ]
+  sprite : 'animation.jpg',
+  frames : 10
 });</pre>
       </code>
 
@@ -72,12 +68,10 @@
 
       <code>
         <pre>{
-  images      : []      // Image array
-  interaction : string  // 'hover'         - Scratch on hover
-                        // 'drag'          - Scratch on drag
-                        // 'auto'          - Autoplay
-                        // 'autoWithHover' - Autoplay with hover scratch
-                        // 'autoWithDrag'  - Autoplay with drag scratch
+  sprite      : string  // Image sprite
+  frames      : int     // Number of frames in sprite
+  interaction : string  // 'hover', 'drag', 'auto',
+                        // 'autoWithHover', 'autoWithDrag'
   speed       : int     // Autoplay speed
   cursor      : boolean // Add custom cursor
 }</pre>
@@ -89,15 +83,22 @@
       <h2>Help</h2>
 
       <p>
-        To extract every single frame from an animated GIF as individual JPEGs you can use ImageMagick in the terminal.
+        To extract every single frame from an animated GIF as individual JPEGs and create a sprite you can use ImageMagick in the terminal.
       </p>
 
       <p>
-        Install ImageMagick (OS X): <span class="command">brew install imagemagick</span>
+        Install ImageMagick (OS X):
+        <span class="command">brew install imagemagick</span>
       </p>
 
       <p>
-        Then run: <span class="command">convert FILENAME.gif -coalesce %02d.jpg</span> to extract the frames.
+        To extract the frames run:
+        <span class="command">convert FILENAME.gif -coalesce %02d.jpg</span>
+      </p>
+
+      <p>
+        To create the sprite run:
+        <span class="command">montage `ls ??.jpg` -tile NUMBER_OF_FRAMESx1 -geometry 500x284 FILENAME.jpg</span>
       </p>
     </section>
 
@@ -111,45 +112,19 @@
 
   </div>
 
-  <script src="javascripts/gifscratcher.min.js" defer></script>
+  <script src="javascripts/gifscratcher.js" defer></script>
   <script defer>
     ;(function ($) {
       'use strict';
 
       $(function() {
-        var path = 'http://compost.unwi.se/github/animations/1/';
+        var path = 'http://compost.unwi.se/github/animations/';
 
         $("#animation-1").gifscratcher({
-          images : [
-            path + '00.jpg',
-            path + '01.jpg',
-            path + '02.jpg',
-            path + '03.jpg',
-            path + '04.jpg',
-            path + '05.jpg',
-            path + '06.jpg',
-            path + '07.jpg',
-            path + '08.jpg',
-            path + '09.jpg',
-            path + '10.jpg',
-            path + '11.jpg',
-            path + '12.jpg',
-            path + '13.jpg',
-            path + '14.jpg',
-            path + '15.jpg',
-            path + '16.jpg',
-            path + '17.jpg',
-            path + '18.jpg',
-            path + '19.jpg',
-            path + '20.jpg',
-            path + '21.jpg',
-            path + '22.jpg',
-            path + '23.jpg',
-            path + '24.jpg',
-            path + '25.jpg'
-          ],
+          sprite : path + '1.jpg',
+          frames : 26,
           interaction : 'autoWithHover',
-          speed : 50
+          speed : 4
         });
 
         // Twitter
