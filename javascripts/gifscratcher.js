@@ -1,3 +1,14 @@
+/* =============================================================================
+
+    Licensed under the MIT license.
+    http://www.opensource.org/licenses/mit-license.php
+
+   ============================================================================= */
+
+/*! gifscratcher.js v0.2  (c) 2014 Linus Lundahl | MIT license */
+
+/* ============================================================================= */
+
 /* global jQuery:true */
 
 /**
@@ -6,31 +17,23 @@
 ;(function ($) {
   'use strict';
 
-  var lastTime = 0,
-      vendors = ['ms', 'moz', 'webkit', 'o'];
-
-  for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-    window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-    window.cancelAnimationFrame  = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
-  }
-
-  if (!window.requestAnimationFrame) {
-    window.requestAnimationFrame = function(callback) {
-      var currTime = new Date().getTime();
-      var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-      var id = window.setTimeout(function() { callback(currTime + timeToCall); },
-        timeToCall);
-      lastTime = currTime + timeToCall;
-      return id;
+  /**
+   * RequestAnimationFrame polyfill
+   */
+  var requestAnimFrame = (function () {
+    return window.requestAnimationFrame ||
+      window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame ||
+      function (callback) {
+        window.setTimeout(callback, 1000 / 60);
     };
-  }
+  }());
 
-  if (!window.cancelAnimationFrame) {
-    window.cancelAnimationFrame = function(id) {
-      clearTimeout(id);
-    };
-  }
-
+  /**
+   * GifScratcher
+   * @param {object} el
+   * @param {object} settings
+   */
   var GifScratcher = function (el, settings) {
     this.init(el, settings);
   };
@@ -241,7 +244,7 @@
           auto;
 
       auto = function () {
-        requestAnimationFrame(auto);
+        requestAnimFrame(auto);
         if ((_.stopOnHover && !_.isHovering) && delay === _.settings.speed) {
           _.switchFrame(_.iAuto);
           _.iAuto = (_.iAuto >= _.settings.frames - 1) ? 0 : _.iAuto+1;

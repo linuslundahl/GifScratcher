@@ -59,7 +59,9 @@ gulp.task('scripts', function() {
   return gulp.src(['javascripts/*.js', '!javascripts/*.min.js'])
     .pipe(plumber(plumberErrorHandler))
     .pipe(rename({ suffix: '.min' }))
-    .pipe(uglify())
+    .pipe(uglify({
+      preserveComments : 'some'
+    }))
     .pipe(gulp.dest('javascripts'))
     .pipe(notify({ message: 'Scripts task complete' }));
 });
