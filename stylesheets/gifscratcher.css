@@ -2,85 +2,66 @@
 @-webkit-keyframes pulse_animation {
   from {
     -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
+    transform: translateX(0); }
   43% {
     -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
+    transform: translateX(0); }
   45% {
     -webkit-transform: translateX(25%);
-    transform: translateX(25%);
-  }
+    transform: translateX(25%); }
   50% {
     -webkit-transform: translateX(-25%);
-    transform: translateX(-25%);
-  }
+    transform: translateX(-25%); }
   53% {
     -webkit-transform: translateX(10%);
-    transform: translateX(10%);
-  }
+    transform: translateX(10%); }
   60% {
     -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
+    transform: translateX(0); }
   to {
     -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
-}
+    transform: translateX(0); } }
 @keyframes pulse_animation {
   from {
     -ms-transform: translateX(0);
     -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
+    transform: translateX(0); }
   43% {
     -ms-transform: translateX(0);
     -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
+    transform: translateX(0); }
   45% {
     -ms-transform: translateX(25%);
     -webkit-transform: translateX(25%);
-    transform: translateX(25%);
-  }
+    transform: translateX(25%); }
   50% {
     -ms-transform: translateX(-25%);
     -webkit-transform: translateX(-25%);
-    transform: translateX(-25%);
-  }
+    transform: translateX(-25%); }
   53% {
     -ms-transform: translateX(10%);
     -webkit-transform: translateX(10%);
-    transform: translateX(10%);
-  }
+    transform: translateX(10%); }
   60% {
     -ms-transform: translateX(0);
     -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
+    transform: translateX(0); }
   to {
     -ms-transform: translateX(0);
     -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
-}
+    transform: translateX(0); } }
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  width: 100%;
-}
+  width: 100%; }
 
 .gifscratcher {
   display: block;
   overflow: hidden;
-  position: relative;
-}
-.gifscratcher.has-gs-cursor {
-  cursor: none;
-}
+  position: relative; }
+  .gifscratcher.has-gs-cursor {
+    cursor: none; }
 
 .gs-img {
   display: block;
@@ -88,8 +69,7 @@ html, body {
      -moz-user-select: none;
       -ms-user-select: none;
           user-select: none;
-  -webkit-user-drag: none;
-}
+  -webkit-user-drag: none; }
 
 .gs-cursor {
   -webkit-animation: "pulse_animation" 3000ms infinite cubic-bezier(0.17, 0.67, 0.42, 0);
@@ -105,40 +85,33 @@ html, body {
   top: 50%;
   -webkit-transition: all 100ms ease-in;
           transition: all 100ms ease-in;
-  width: 50px;
-}
-.gs-cursor::before, .gs-cursor::after {
-  border: 4px solid transparent;
-  content: '';
-  height: 0;
-  margin: -4px 0 0;
-  position: absolute;
-  top: 50%;
-  width: 0;
-}
-.gs-cursor::before {
-  border-right-color: #111;
-  left: 15%;
-}
-.gs-cursor::after {
-  border-left-color: #111;
-  right: 15%;
-}
-.active .gs-cursor {
-  -webkit-transform: scale(0.6);
-      -ms-transform: scale(0.6);
-          transform: scale(0.6);
-  -webkit-transition: none;
-          transition: none;
-  -webkit-animation: none;
-          animation: none;
-}
-.gs-touch .gs-cursor {
-  -webkit-transition: all 100ms ease-in;
-          transition: all 100ms ease-in;
-}
-.gs-touch.active .gs-cursor {
-  -webkit-transform: scale(0);
-      -ms-transform: scale(0);
-          transform: scale(0);
-}
+  width: 50px; }
+  .gs-cursor::before, .gs-cursor::after {
+    border: 4px solid transparent;
+    content: '';
+    height: 0;
+    margin: -4px 0 0;
+    position: absolute;
+    top: 50%;
+    width: 0; }
+  .gs-cursor::before {
+    border-right-color: #111;
+    left: 15%; }
+  .gs-cursor::after {
+    border-left-color: #111;
+    right: 15%; }
+  .active .gs-cursor {
+    -webkit-transform: scale(0.6);
+        -ms-transform: scale(0.6);
+            transform: scale(0.6);
+    -webkit-transition: none;
+            transition: none;
+    -webkit-animation: none;
+            animation: none; }
+  .gs-touch .gs-cursor {
+    -webkit-transition: all 100ms ease-in;
+            transition: all 100ms ease-in; }
+  .gs-touch.active .gs-cursor {
+    -webkit-transform: scale(0);
+        -ms-transform: scale(0);
+            transform: scale(0); }
