@@ -188,7 +188,7 @@
 
         if (_.touchIsActive) {
           e.preventDefault();
-          _.play(e.pageX - _.elPos.left);
+          _.play(e.targetTouches[0].pageX - _.elPos.left);
         }
       });
 
