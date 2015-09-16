@@ -114,8 +114,13 @@ pre,
   font-size: .85em;
 }
 
+code {
+  overflow-y: scroll;
+}
+
 code pre {
   border: none;
+  min-width: 400px;
 }
 
 .page {

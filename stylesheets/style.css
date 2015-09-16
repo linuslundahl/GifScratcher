@@ -142,8 +142,12 @@ pre,
 .command {
   font-size: .85em; }
 
+code {
+  overflow-y: scroll; }
+
 code pre {
-  border: none; }
+  border: none;
+  min-width: 400px; }
 
 .page {
   margin: 0 auto;

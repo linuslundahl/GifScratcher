@@ -313,10 +313,12 @@
       var _ = this;
 
       $(window).on('resize', function () {
-        _.elSize = {w: _.$el.width(), h: _.$el.height()};
-        _.elPos  = _.$el.offset();
-        _.play(0);
-        _.$image.css({width : (_.settings.frames * _.elSize.w) + 'px'});
+        if (_.$image.is(':visible')) {
+          _.elSize = {w: _.$el.width(), h: _.$el.height()};
+          _.elPos  = _.$el.offset();
+          _.play(0);
+          _.$image.css({width : (_.settings.frames * _.elSize.w) + 'px'});
+        }
       });
 
       return this;
