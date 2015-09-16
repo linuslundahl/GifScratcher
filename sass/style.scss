@@ -93,6 +93,7 @@ code {
   margin: 1em 0;
   padding: .5em 0;
   text-align: left;
+  overflow-y: scroll;
 }
 
 pre,
@@ -112,10 +113,6 @@ pre,
 
 .command {
   font-size: .85em;
-}
-
-code {
-  overflow-y: scroll;
 }
 
 code pre {

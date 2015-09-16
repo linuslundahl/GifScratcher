@@ -123,7 +123,8 @@ code {
   line-height: 150%;
   margin: 1em 0;
   padding: .5em 0;
-  text-align: left; }
+  text-align: left;
+  overflow-y: scroll; }
 
 pre,
 .command {
@@ -141,9 +142,6 @@ pre,
 
 .command {
   font-size: .85em; }
-
-code {
-  overflow-y: scroll; }
 
 code pre {
   border: none;
