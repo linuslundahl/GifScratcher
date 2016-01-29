@@ -90,9 +90,20 @@
           // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
           if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && _.settings.interaction !== 'auto') {
             _.cursorInteraction = false;
+            _.stopOnHover = true;
             _.$el.addClass('gs-touch');
+
+            switch (_.settings.interaction) {
+              case 'auto':
+              case 'autoWithHover':
+              case 'autoWithDrag':
+                _.auto();
+              break;
+            }
+
             _.touchInteraction();
             _.touch(); // Listen for touch
+
           } else {
             switch (_.settings.interaction) {
               // Hover
@@ -299,6 +310,7 @@
       var _ = this;
 
       _.$el.on('touchstart touchend', function () {
+        _.isHovering = !_.isHovering;
         _.$el.toggleClass('active');
       });
 
