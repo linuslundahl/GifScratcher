@@ -70,8 +70,9 @@
         <pre>{
   sprite      : string  // Image sprite
   frames      : int     // Number of frames in sprite
-  interaction : string  // 'hover', 'drag', 'auto',
-                        // 'autoWithHover', 'autoWithDrag'
+  interaction : string  // 'hover'
+                        // 'drag'
+  auto        : boolean // Autoplay
   speed       : int     // Autoplay speed
   cursor      : boolean // Add custom cursor
 }</pre>
@@ -123,7 +124,8 @@
         $("#animation-1").gifscratcher({
           sprite : path + '1.jpg',
           frames : 26,
-          interaction : 'autoWithHover',
+          interaction : 'hover',
+          auto : true,
           speed : 4
         });
 

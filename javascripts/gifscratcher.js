@@ -46,6 +46,7 @@
         sprite      : '',
         frames      : 0,
         interaction : 'hover',
+        touch       : 'touch',
         cursor      : true,
         speed       : 5
       }, settings);
@@ -57,9 +58,8 @@
       _.oldFrame          = 0;
       _.iAuto             = 0;
 
-      _.touchIsActive     = false;
-      _.isHovering        = false;
-      _.stopOnHover       = false;
+      _.userAction        = false;
+      _.stopOnAction      = false;
       _.cursorInteraction = true;
 
       _.$image.on('load', function () {
@@ -86,24 +86,18 @@
            // Add custom cursor
            _.addCursor();
 
+           if (_.settings.auto) {
+             _.stopOnAction = true;
+             _.$el.addClass('gs-auto');
+             _.auto();
+           }
+
           // Test for touch device.
           // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
           if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && _.settings.interaction !== 'auto') {
             _.cursorInteraction = false;
-            _.stopOnHover = true;
             _.$el.addClass('gs-touch');
-
-            switch (_.settings.interaction) {
-              case 'auto':
-              case 'autoWithHover':
-              case 'autoWithDrag':
-                _.auto();
-              break;
-            }
-
             _.touchInteraction();
-            _.touch(); // Listen for touch
-
           } else {
             switch (_.settings.interaction) {
               // Hover
@@ -116,26 +110,6 @@
               case 'drag':
                 _.$el.addClass('gs-drag');
                 _.dragInteraction();
-              break;
-
-              // Auto
-              case 'auto':
-                _.$el.addClass('gs-auto');
-                _.auto();
-              break;
-
-              // Auto with hover
-              case 'autoWithHover':
-                _.stopOnHover = true;
-                _.$el.addClass('gs-auto-hover');
-                _.auto().hoverInteraction();
-              break;
-
-              // Auto with drag
-              case 'autoWithDrag':
-                _.stopOnHover = true;
-                _.$el.addClass('gs-auto-drag');
-                _.auto().dragInteraction();
               break;
             }
 
@@ -191,13 +165,14 @@
       var _ = this;
 
       _.$el.on('touchstart touchend', function (e) {
-        _.touchIsActive = (e.type === 'touchstart') ? true : false;
+        _.userAction = (e.type === 'touchstart') ? true : false;
+        _.$el.toggleClass('active');
       });
 
       $(window).on('touchmove', function (ev) {
         var e = ev.originalEvent;
 
-        if (_.touchIsActive) {
+        if (_.userAction) {
           e.preventDefault();
           _.play(e.targetTouches[0].pageX - _.elPos.left);
         }
@@ -256,7 +231,7 @@
 
       auto = function () {
         requestAnimFrame(auto);
-        if ((_.stopOnHover && !_.isHovering) && delay === _.settings.speed) {
+        if ((_.stopOnAction && !_.userAction) && delay === _.settings.speed) {
           _.switchFrame(_.iAuto);
           _.iAuto = (_.iAuto >= _.settings.frames - 1) ? 0 : _.iAuto+1;
         }
@@ -283,35 +258,20 @@
             });
           }
 
-          if (!_.isHovering) {
+          if (!_.userAction) {
             _.$el.addClass('active');
-            _.isHovering = true;
+            _.userAction = true;
           }
         } else {
           if (_.$cursor) {
             _.$cursor.removeAttr('style');
           }
-          if (_.isHovering) {
+          if (_.userAction) {
             _.$el.removeClass('active');
-            _.isHovering = false;
+            _.userAction = false;
             _.iAuto = _.oldFrame;
           }
         }
-      });
-
-      return this;
-    },
-
-    /**
-     * Handle touch
-     * @return {object}
-     */
-    touch : function () {
-      var _ = this;
-
-      _.$el.on('touchstart touchend', function () {
-        _.isHovering = !_.isHovering;
-        _.$el.toggleClass('active');
       });
 
       return this;

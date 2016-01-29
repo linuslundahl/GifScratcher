@@ -27,9 +27,7 @@ Settings available.
 	frames      : int     // Number of frames in sprite
 	interaction : string  // 'hover'         - Scratch on hover
 						  // 'drag'          - Scratch on drag
-						  // 'auto'          - Autoplay
-						  // 'autoWithHover' - Autoplay with hover scratch
-						  // 'autoWithDrag'  - Autoplay with drag scratch
+	auto        : bool    // Autoplay
 	speed       : int     // Autoplay speed
 	cursor      : boolean // Add custom cursor
 
@@ -45,6 +43,6 @@ To extract the frames run:
 
 	$ convert FILENAME.gif -coalesce %02d.jpg
 
-To create the final sprite run: 
-	
+To create the final sprite run:
+
 	$ montage `ls ??.jpg` -tile NUMBER_OF_FRAMESx1 -geometry 500x284 FILENAME.jpg
