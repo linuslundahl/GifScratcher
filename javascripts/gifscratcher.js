@@ -79,7 +79,7 @@
           $(window).resize();
 
            // Don't add a custom cursor for autoplaying GIFs
-           if (_.settings.interaction === 'auto') {
+           if (_.settings.auto) {
             _.settings.cursor = false;
            }
 
@@ -94,7 +94,7 @@
 
           // Test for touch device.
           // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
-          if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && _.settings.interaction !== 'auto') {
+          if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
             _.cursorInteraction = false;
             _.$el.addClass('gs-touch');
             _.touchInteraction();
