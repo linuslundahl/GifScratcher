@@ -78,11 +78,6 @@
           // Do an initial resize for responsive purposes
           $(window).resize();
 
-           // Don't add a custom cursor for autoplaying GIFs
-           if (_.settings.auto) {
-            _.settings.cursor = false;
-           }
-
            // Add custom cursor
            _.addCursor();
 
