@@ -46,7 +46,7 @@
         sprite      : '',
         frames      : 0,
         interaction : 'hover',
-        touch       : 'touch',
+        auto        : true,
         cursor      : true,
         speed       : 5
       }, settings);
