@@ -7,12 +7,10 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link href='https://fonts.googleapis.com/css?family=Gentium+Basic:400,700&amp;subset=latin' rel='stylesheet' type='text/css'>
+  <link href="https://fonts.googleapis.com/css?family=Gentium+Basic:400,700&amp;subset=latin" rel="stylesheet">
 
   <link rel="stylesheet" href="stylesheets/style.css">
   <link rel="stylesheet" href="stylesheets/gifscratcher.css">
-
-  <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
 </head>
 <body>
 
@@ -22,7 +20,7 @@
       <h1 class="headline">Gif Scratcher</h1>
 
       <p class="tagline">
-        A lightweight (~4kb minified) jQuery plugin that allows you to scratch GIFs.
+        A lightweight dependency-free JavaScript library that allows you to scratch GIFs.
       </p>
 
       <a href="https://github.com/linuslundahl/GifScratcher/archive/master.zip" class="button">Download</a> <a href="https://github.com/linuslundahl/GifScratcher" class="button">GitHub</a>
@@ -52,11 +50,13 @@
       </code>
 
       <p>
-        Then add the jQuery magic.
+        Then add the JavaScript magic.
       </p>
 
       <code>
-      <pre>$(&quot;#target&quot;).gifscratcher({
+      <pre>import { GifScratcher } from './javascripts/gifscratcher.js';
+
+new GifScratcher(document.querySelector('#target'), {
   sprite : 'animation.jpg',
   frames : 10
 });</pre>
@@ -94,7 +94,7 @@
 
       <p>
         To extract the frames run:
-        <span class="command">convert FILENAME.gif -coalesce %02d.jpg</span>
+        <span class="command">magick FILENAME.gif -coalesce %02d.jpg</span>
       </p>
 
       <p>
@@ -107,32 +107,22 @@
       <div class="about">
         Brought to you by <a href="http://unwi.se/">http://unwi.se/</a>.
       </div>
-
-      <div class="twitter-share share"><a href="https://twitter.com/share" class="twitter-share-button" data-url="http://<?php print $_SERVER['HTTP_HOST']; ?>" data-via="linuslundahl">Tweet</a></div>
     </footer>
 
   </div>
 
-  <script src="javascripts/gifscratcher.js" defer></script>
-  <script defer>
-    ;(function ($) {
-      'use strict';
+  <script type="module">
+    import { GifScratcher } from './javascripts/gifscratcher.js';
 
-      $(function() {
-        var path = 'http://compost.unwi.se/github/animations/';
+    const path = 'http://compost.unwi.se/github/animations/';
 
-        $("#animation-1").gifscratcher({
-          sprite : path + '1.jpg',
-          frames : 26,
-          interaction : 'hover',
-          auto : true,
-          speed : 4
-        });
-
-        // Twitter
-        !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');
-      });
-    })(jQuery);
+    new GifScratcher(document.querySelector('#animation-1'), {
+      sprite: path + '1.jpg',
+      frames: 26,
+      interaction: 'hover',
+      auto: true,
+      speed: 4
+    });
   </script>
 </body>
 </html>

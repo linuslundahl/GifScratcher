@@ -1,339 +1,268 @@
 /* =============================================================================
 
+    GifScratcher
     Licensed under the MIT license.
     http://www.opensource.org/licenses/mit-license.php
 
    ============================================================================= */
-
-/*! gifscratcher.js v0.2  (c) 2014 Linus Lundahl | MIT license */
-
-/* ============================================================================= */
-
-/* global jQuery:true */
-
+const DEFAULTS = {
+    sprite: '',
+    frames: 0,
+    interaction: 'hover',
+    auto: true,
+    cursor: true,
+    speed: 5,
+};
 /**
- * GifScratcher
+ * GifScratcher — a dependency-free GIF "scratching" widget.
+ *
+ * @example
+ * new GifScratcher('#target', { sprite: 'animation.jpg', frames: 10 });
  */
-;(function ($) {
-  'use strict';
-
-  /**
-   * RequestAnimationFrame polyfill
-   */
-  var requestAnimFrame = (function () {
-    return window.requestAnimationFrame ||
-      window.webkitRequestAnimationFrame ||
-      window.mozRequestAnimationFrame ||
-      function (callback) {
-        window.setTimeout(callback, 1000 / 60);
-    };
-  }());
-
-  /**
-   * GifScratcher
-   * @param {object} el
-   * @param {object} settings
-   */
-  var GifScratcher = function (el, settings) {
-    this.init(el, settings);
-  };
-
-  GifScratcher.prototype = {
-    init : function (el, settings) {
-      var _ = this;
-
-      _.settings = $.extend({
-        sprite      : '',
-        frames      : 0,
-        interaction : 'hover',
-        auto        : true,
-        cursor      : true,
-        speed       : 5
-      }, settings);
-
-      _.$el               = $(el);
-      _.$image            = _.$el.find('img');
-      _.elSize            = {w: 0, h: 0};
-      _.elPos             = _.$el.offset();
-      _.oldFrame          = 0;
-      _.iAuto             = 0;
-
-      _.userAction        = false;
-      _.stopOnAction      = false;
-      _.cursorInteraction = true;
-
-      _.$image.on('load', function () {
-        _.elSize = {w: _.$el.width(), h: _.$el.height()};
-      });
-
-      if (_.settings.sprite) {
-        _.$el.addClass('gifscratcher');
-        _.$image.addClass('gs-img');
-
-        // Preload sprite image
-        _.preload(function () {
-          // Listen for resize
-          _.resize();
-
-          // Do an initial resize for responsive purposes
-          $(window).resize();
-
-           // Add custom cursor
-           _.addCursor();
-
-           if (_.settings.auto) {
-             _.stopOnAction = true;
-             _.$el.addClass('gs-auto');
-             _.auto();
-           }
-
-          // Test for touch device.
-          // Source : http://stackoverflow.com/questions/3514784/what-is-the-best-way-to-detect-a-handheld-device-in-jquery
-          if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-            _.cursorInteraction = false;
-            _.$el.addClass('gs-touch');
-            _.touchInteraction();
-          } else {
-            switch (_.settings.interaction) {
-              // Hover
-              case 'hover':
-                _.$el.addClass('gs-hover');
-                _.hoverInteraction();
-              break;
-
-              // Drag
-              case 'drag':
-                _.$el.addClass('gs-drag');
-                _.dragInteraction();
-              break;
+export class GifScratcher {
+    constructor(target, options = {}) {
+        this.cursor = null;
+        this.size = { w: 0, h: 0 };
+        this.oldFrame = 0;
+        this.autoFrame = 0;
+        this.userAction = false;
+        this.abort = new AbortController();
+        this.signal = this.abort.signal;
+        this.resizeObserver = null;
+        this.rafId = 0;
+        const el = typeof target === 'string'
+            ? document.querySelector(target)
+            : target;
+        if (!el) {
+            throw new Error(`GifScratcher: no element found for "${target}".`);
+        }
+        const img = el.querySelector('img');
+        if (!(img instanceof HTMLImageElement)) {
+            throw new Error('GifScratcher: target element must contain an <img>.');
+        }
+        this.el = el;
+        this.image = img;
+        this.settings = { ...DEFAULTS, ...options };
+        if (this.settings.sprite) {
+            this.setup();
+        }
+    }
+    /**
+     * True on devices without hover capability (replaces UA sniffing).
+     */
+    static get isTouchDevice() {
+        return window.matchMedia('(hover: none), (pointer: coarse)').matches;
+    }
+    /**
+     * Preloads the sprite, then wires up sizing, cursor and interaction.
+     */
+    setup() {
+        this.el.classList.add('gifscratcher');
+        this.image.classList.add('gs-img');
+        this.image.draggable = false;
+        this.preload(() => {
+            this.observeResize();
+            this.addCursor();
+            if (this.settings.auto) {
+                this.el.classList.add('gs-auto');
+                this.auto();
             }
-
-            // Listen for hover
-            _.hover();
-          }
+            if (GifScratcher.isTouchDevice) {
+                this.el.classList.add('gs-touch');
+                this.touchInteraction();
+            }
+            else {
+                const mode = this.settings.interaction === 'drag' ? 'drag' : 'hover';
+                this.el.classList.add(`gs-${mode}`);
+                if (mode === 'drag') {
+                    this.dragInteraction();
+                }
+                else {
+                    this.hoverInteraction();
+                }
+                this.hover();
+            }
         });
-      }
-
-      return this;
-    },
-
+    }
+    /**
+     * Removes all listeners, observers, the cursor element and CSS classes.
+     */
+    destroy() {
+        this.abort.abort();
+        this.resizeObserver?.disconnect();
+        window.cancelAnimationFrame(this.rafId);
+        this.cursor?.remove();
+        this.el.classList.remove('gifscratcher', 'has-gs-cursor', 'gs-auto', 'gs-touch', 'gs-hover', 'gs-drag', 'active');
+        this.image.classList.remove('gs-img');
+        this.image.removeAttribute('style');
+    }
     /**
      * Appends a cursor div to the element.
-     * @return {object}
      */
-    addCursor : function () {
-      var _ = this;
-
-      if (_.settings.cursor) {
-        _.$el.addClass('has-gs-cursor');
-        _.$cursor = $('<div></div>').addClass('gs-cursor').appendTo(_.$el);
-      }
-
-      return this;
-    },
-
+    addCursor() {
+        if (this.settings.cursor) {
+            this.el.classList.add('has-gs-cursor');
+            this.cursor = document.createElement('div');
+            this.cursor.classList.add('gs-cursor');
+            this.el.appendChild(this.cursor);
+        }
+        return this;
+    }
     /**
      * Preloads the sprite.
-     * @param  {string}  The sprite image URL.
-     * @return {object}
      */
-    preload : function (callback) {
-      var _ = this;
-
-      var img = new Image();
-      img.src = _.settings.sprite;
-      img.onload = function () {
-        _.$image.attr({src : _.settings.sprite});
-        if ($.isFunction(callback)) {
-          callback();
-        }
-      };
-
-      return this;
-    },
-
-    /**
-     * Handles touch to interact with the animation.
-     * @return {object}
-     */
-    touchInteraction : function () {
-      var _ = this;
-
-      _.$el.on('touchstart touchend', function (e) {
-        _.userAction = (e.type === 'touchstart') ? true : false;
-        _.$el.toggleClass('active');
-      });
-
-      $(window).on('touchmove', function (ev) {
-        var e = ev.originalEvent;
-
-        if (_.userAction) {
-          e.preventDefault();
-          _.play(e.targetTouches[0].pageX - _.elPos.left);
-        }
-      });
-
-      return this;
-    },
-
-    /**
-     * Handles hover moving to interact with the animation.
-     * @return {[type]} [description]
-     */
-    hoverInteraction : function () {
-      var _ = this;
-
-      _.$el.on('mousemove', function (e) {
-        _.play(e.pageX - _.elPos.left);
-      });
-
-      return this;
-    },
-
-    /**
-     * Handles dragging to interact with the animation.
-     * @return {object}
-     */
-    dragInteraction : function () {
-      var _ = this,
-          dragging = false;
-
-      document.ondragstart = function () { return false; };
-
-      _.$cursor.on('mousedown mouseup', function (e) {
-        e.preventDefault();
-        dragging = (!dragging && e.type === 'mousedown') ? true : false;
-      });
-
-      _.$el.on('mousemove', function (e) {
-        e.preventDefault();
-        if (dragging) {
-          _.play(e.clientX - _.elPos.left);
-        }
-      });
-
-      return this;
-    },
-
-    /**
-     * Handles autoplaying of the images
-     * @return {object}
-     */
-    auto : function () {
-      var _ = this,
-          delay = 0,
-          auto;
-
-      auto = function () {
-        requestAnimFrame(auto);
-        if ((_.stopOnAction && !_.userAction) && delay === _.settings.speed) {
-          _.switchFrame(_.iAuto);
-          _.iAuto = (_.iAuto >= _.settings.frames - 1) ? 0 : _.iAuto+1;
-        }
-        delay = (delay === _.settings.speed) ? 0 : delay+1;
-      };
-      auto();
-
-      return this;
-    },
-
-    /**
-     * Handle hover
-     * @return {object}
-     */
-    hover : function () {
-      var _ = this;
-
-      $('body').on('mousemove', function (e) {
-        if ((e.pageX >= _.elPos.left && e.pageX <= _.elPos.left + _.elSize.w) && (e.pageY >= _.elPos.top && e.pageY <= _.elPos.top + _.elSize.h)) {
-          if (_.$cursor && _.cursorInteraction) {
-            _.$cursor.css({
-               left: e.pageX - _.elPos.left,
-               top:  e.pageY - _.elPos.top
-            });
-          }
-
-          if (!_.userAction) {
-            _.$el.addClass('active');
-            _.userAction = true;
-          }
-        } else {
-          if (_.$cursor) {
-            _.$cursor.removeAttr('style');
-          }
-          if (_.userAction) {
-            _.$el.removeClass('active');
-            _.userAction = false;
-            _.iAuto = _.oldFrame;
-          }
-        }
-      });
-
-      return this;
-    },
-
-    /**
-     * Handle browser resizes for responsive purposes
-     * @return {object}
-     */
-    resize : function () {
-      var _ = this;
-
-      $(window).on('resize', function () {
-        if (_.$image.is(':visible')) {
-          _.elSize = {w: _.$el.width(), h: _.$el.height()};
-          _.elPos  = _.$el.offset();
-          _.play(0);
-          _.$image.css({width : (_.settings.frames * _.elSize.w) + 'px'});
-        }
-      });
-
-      return this;
-    },
-
-    /**
-     * Calculates current frame and switches it
-     * @param  {int}    xcoord The x coordinate from the element
-     * @return {object}
-     */
-    play : function (xcoord) {
-      var _ = this;
-
-      _.switchFrame(Math.floor(xcoord / (Math.round((_.elSize.w / _.settings.frames) * 100)/100)));
-
-      return this;
-    },
-
-    /**
-     * Switches frame
-     * @param  {int}    frame The frame number to switch to
-     * @return {object}
-     */
-    switchFrame : function (frame) {
-      var _ = this;
-
-      if (frame !== _.oldFrame && frame < _.settings.frames) {
-        _.$image.css({'margin-left' : '-' + (frame * _.elSize.w) + 'px'});
-      }
-
-      _.oldFrame = frame;
-
-      return this;
+    preload(callback) {
+        const img = new Image();
+        img.onload = () => {
+            this.image.src = this.settings.sprite;
+            callback?.();
+        };
+        img.onerror = () => {
+            console.warn(`GifScratcher: failed to load sprite "${this.settings.sprite}".`);
+        };
+        img.src = this.settings.sprite;
+        return this;
     }
-  };
-
-  $.fn.gifscratcher = function (options) {
-    var instance;
-
-    instance = this.data('gifscratcher');
-    if (!instance) {
-      return this.each(function () {
-        return $(this).data('gifscratcher', new GifScratcher(this, options));
-      });
+    /**
+     * Touch interaction: press and move to scratch.
+     */
+    touchInteraction() {
+        this.el.style.touchAction = 'none';
+        this.el.addEventListener('pointerdown', () => {
+            this.userAction = true;
+            this.el.classList.add('active');
+        }, { signal: this.signal });
+        window.addEventListener('pointerup', () => {
+            this.userAction = false;
+            this.el.classList.remove('active');
+        }, { signal: this.signal });
+        this.el.addEventListener('pointermove', (e) => {
+            if (this.userAction) {
+                this.play(this.xPosition(e));
+            }
+        }, { signal: this.signal });
+        return this;
     }
-    if (options === true) return instance;
-    if ($.type(options) === 'string') instance[options]();
-
-    return this;
-  };
-})(jQuery);
+    /**
+     * Hover interaction: moving over the element scratches.
+     */
+    hoverInteraction() {
+        this.el.addEventListener('pointermove', (e) => this.play(this.xPosition(e)), {
+            signal: this.signal,
+        });
+        return this;
+    }
+    /**
+     * Drag interaction: press the cursor and move to scratch.
+     */
+    dragInteraction() {
+        let dragging = false;
+        this.el.style.touchAction = 'none';
+        const dragTarget = this.cursor ?? this.el;
+        dragTarget.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            dragging = true;
+            this.el.setPointerCapture(e.pointerId);
+        }, { signal: this.signal });
+        this.el.addEventListener('pointerup', () => {
+            dragging = false;
+        }, { signal: this.signal });
+        this.el.addEventListener('pointercancel', () => {
+            dragging = false;
+        }, { signal: this.signal });
+        this.el.addEventListener('pointermove', (e) => {
+            if (dragging) {
+                this.play(this.xPosition(e));
+            }
+        }, { signal: this.signal });
+        return this;
+    }
+    /**
+     * Autoplays the animation until the user interacts.
+     */
+    auto() {
+        let delay = 0;
+        const tick = () => {
+            this.rafId = window.requestAnimationFrame(tick);
+            if (!this.userAction && delay === this.settings.speed) {
+                this.switchFrame(this.autoFrame);
+                this.autoFrame =
+                    this.autoFrame >= this.settings.frames - 1 ? 0 : this.autoFrame + 1;
+            }
+            delay = delay === this.settings.speed ? 0 : delay + 1;
+        };
+        tick();
+        return this;
+    }
+    /**
+     * Tracks pointer enter/leave to toggle the active state and custom cursor.
+     */
+    hover() {
+        this.el.addEventListener('pointerenter', () => {
+            this.el.classList.add('active');
+            this.userAction = true;
+        }, { signal: this.signal });
+        this.el.addEventListener('pointerleave', () => {
+            this.el.classList.remove('active');
+            this.userAction = false;
+            this.autoFrame = this.oldFrame;
+            this.cursor?.removeAttribute('style');
+        }, { signal: this.signal });
+        if (this.cursor) {
+            this.el.addEventListener('pointermove', (e) => {
+                const rect = this.el.getBoundingClientRect();
+                this.cursor?.style.setProperty('left', `${e.clientX - rect.left}px`);
+                this.cursor?.style.setProperty('top', `${e.clientY - rect.top}px`);
+            }, { signal: this.signal });
+        }
+        return this;
+    }
+    /**
+     * Keeps the sprite sized to `frames * container width` and re-measures
+     * whenever the element changes size.
+     */
+    observeResize() {
+        this.resizeObserver = new ResizeObserver(() => this.resize());
+        this.resizeObserver.observe(this.el);
+    }
+    /**
+     * Re-measures the element. Called automatically by the ResizeObserver,
+     * but can also be invoked manually.
+     */
+    resize() {
+        if (this.image.offsetParent === null)
+            return this;
+        this.size = { w: this.el.offsetWidth, h: this.el.offsetHeight };
+        this.image.style.width = `${this.settings.frames * this.size.w}px`;
+        this.play(0);
+        return this;
+    }
+    /**
+     * Calculates the current frame from an x coordinate and switches to it.
+     */
+    play(xcoord) {
+        if (!this.settings.frames || !this.size.w)
+            return this;
+        const frameWidth = Math.round((this.size.w / this.settings.frames) * 100) / 100;
+        this.switchFrame(Math.max(0, Math.floor(xcoord / frameWidth)));
+        return this;
+    }
+    /**
+     * Switches frame by translating the sprite (GPU-composited).
+     */
+    switchFrame(frame) {
+        if (frame !== this.oldFrame && frame < this.settings.frames) {
+            this.image.style.transform = `translateX(${-frame * this.size.w}px)`;
+            this.oldFrame = frame;
+        }
+        return this;
+    }
+    /**
+     * X position of a pointer event relative to the element. Computed on
+     * demand so it stays correct across scrolling and layout changes.
+     */
+    xPosition(e) {
+        return e.clientX - this.el.getBoundingClientRect().left;
+    }
+}
+//# sourceMappingURL=gifscratcher.js.map
