@@ -5,8 +5,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch"
+    "build": "tsc && npm run sync:docs",
+    "watch": "tsc --watch",
+    "sync:docs": "cp javascripts/gifscratcher.js docs/javascripts/ && cp stylesheets/*.css docs/stylesheets/"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

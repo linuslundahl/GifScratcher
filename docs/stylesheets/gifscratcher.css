@@ -1,0 +1,97 @@
+@keyframes pulse_animation {
+  from {
+    transform: translateX(0);
+  }
+  43% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(25%);
+  }
+  50% {
+    transform: translateX(-25%);
+  }
+  53% {
+    transform: translateX(10%);
+  }
+  60% {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.gifscratcher {
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.gifscratcher.has-gs-cursor {
+  cursor: none;
+}
+
+.gs-img {
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.gs-cursor {
+  animation: pulse_animation 3000ms infinite cubic-bezier(0.17, 0.67, 0.42, 0);
+  background: #eee;
+  background-clip: padding-box;
+  border-radius: 50%;
+  border: 5px solid rgba(0, 0, 0, 0.25);
+  height: 50px;
+  left: 50%;
+  margin: -30px 0 0 -30px;
+  position: absolute;
+  top: 50%;
+  transition: all 100ms ease-in;
+  width: 50px;
+}
+
+.gs-cursor::before,
+.gs-cursor::after {
+  border: 4px solid transparent;
+  content: '';
+  height: 0;
+  margin: -4px 0 0;
+  position: absolute;
+  top: 50%;
+  width: 0;
+}
+
+.gs-cursor::before {
+  border-right-color: #111;
+  left: 15%;
+}
+
+.gs-cursor::after {
+  border-left-color: #111;
+  right: 15%;
+}
+
+.active .gs-cursor {
+  transform: scale(0.6);
+  transition: none;
+  animation: none;
+}
+
+.gs-touch .gs-cursor {
+  transition: all 100ms ease-in;
+}
+
+.gs-touch.active .gs-cursor {
+  transform: scale(0);
+}

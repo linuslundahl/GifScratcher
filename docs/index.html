@@ -23,17 +23,17 @@
         A lightweight dependency-free JavaScript library that allows you to scratch GIFs.
       </p>
 
-      <a href="https://github.com/linuslundahl/GifScratcher/archive/master.zip" class="button">Download</a> <a href="https://github.com/linuslundahl/GifScratcher" class="button">GitHub</a>
+      <a href="https://github.com/linuslundahl/GifScratcher/archive/refs/heads/main.zip" class="button">Download</a> <a href="https://github.com/linuslundahl/GifScratcher" class="button">GitHub</a>
     </header>
 
     <section>
       <h2>Demo</h2>
 
       <div id="animation-1" class="target">
-        <img src="http://compost.unwi.se/github/animations/1/00.jpg">
+        <img src="animations/demo-frame.jpg" alt="Animated demo">
       </div>
 
-      Move your mouse over the GIF to scratch it. (GIF by <a href="http://juliendouvier.tumblr.com">Julien Douvier</a>)
+      Move your mouse over the image to scratch it.
     </section>
 
     <section>
@@ -56,7 +56,7 @@
       <code>
       <pre>import { GifScratcher } from './javascripts/gifscratcher.js';
 
-new GifScratcher(document.querySelector('#target'), {
+new GifScratcher('#target', {
   sprite : 'animation.jpg',
   frames : 10
 });</pre>
@@ -88,7 +88,7 @@ new GifScratcher(document.querySelector('#target'), {
       </p>
 
       <p>
-        Install ImageMagick (OS X):
+        Install ImageMagick (macOS):
         <span class="command">brew install imagemagick</span>
       </p>
 
@@ -99,7 +99,7 @@ new GifScratcher(document.querySelector('#target'), {
 
       <p>
         To create the sprite run:
-        <span class="command">montage `ls ??.jpg` -tile NUMBER_OF_FRAMESx1 -geometry 500x284 FILENAME.jpg</span>
+        <span class="command">magick ??.jpg +append FILENAME.jpg</span>
       </p>
     </section>
 
@@ -114,10 +114,8 @@ new GifScratcher(document.querySelector('#target'), {
   <script type="module">
     import { GifScratcher } from './javascripts/gifscratcher.js';
 
-    const path = 'http://compost.unwi.se/github/animations/';
-
-    new GifScratcher(document.querySelector('#animation-1'), {
-      sprite: path + '1.jpg',
+    new GifScratcher('#animation-1', {
+      sprite: 'animations/demo.jpg',
       frames: 26,
       interaction: 'hover',
       auto: true,
