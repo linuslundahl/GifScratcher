@@ -45,7 +45,7 @@ Settings available.
 ### REPO STRUCTURE
 
 	src/gifscratcher.ts   → library source (TypeScript)
-	dist/                 → compiled output (npm run build, gitignored)
+	dist/                 → compiled output (npm run build, committed)
 	docs/                 → the GitHub Pages site (published from main)
 	  javascripts/        → built library, synced from dist/ on build
 	  stylesheets/        → plain CSS
