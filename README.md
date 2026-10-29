@@ -12,7 +12,7 @@ The library is written in TypeScript. The only tool needed to build is the
 TypeScript compiler:
 
     $ npm install
-    $ npm run build    # compiles src/gifscratcher.ts -> javascripts/ and syncs docs/
+    $ npm run build    # compiles src/gifscratcher.ts -> dist/ and syncs docs/
     $ npm run watch    # recompile on change
 
 ### DOCUMENTATION
@@ -25,7 +25,7 @@ Add the first image in your animation to your HTML file.
 
 Then add the JavaScript magic.
 
-	import { GifScratcher } from './javascripts/gifscratcher.js';
+	import { GifScratcher } from './dist/gifscratcher.js';
 
 	new GifScratcher('#target', {
   		sprite : 'animation.jpg',
@@ -45,14 +45,16 @@ Settings available.
 ### REPO STRUCTURE
 
 	src/gifscratcher.ts   → library source (TypeScript)
-	javascripts/          → compiled output (npm run build)
-	stylesheets/          → plain CSS
+	dist/                 → compiled output (npm run build, gitignored)
 	docs/                 → the GitHub Pages site (published from main)
+	  javascripts/        → built library, synced from dist/ on build
+	  stylesheets/        → plain CSS
+	  animations/         → demo sprite
 
 The GitHub Pages demo is served from the `docs/` folder on the `main` branch.
-`npm run build` recompiles the library and copies the built assets into
-`docs/`, so the published page always matches the source. The demo sprite
-lives in `docs/animations/`.
+`npm run build` recompiles the library into `dist/` and copies the built
+`gifscratcher.js` into `docs/javascripts/`, so the published page always
+matches the source. The demo sprite lives in `docs/animations/`.
 
 ### HELP
 
