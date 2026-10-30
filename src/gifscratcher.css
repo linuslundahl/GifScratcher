@@ -147,6 +147,38 @@ body {
   height: auto;
 }
 
+/* =============================================================================
+   Loader
+   ========================================================================== */
+
+/* The canvas is empty (transparent) until the first frame is decoded, so give
+   it a placeholder backdrop while loading. Its aspect-ratio is set from the
+   GIF header, so it already reserves the right space. */
+.gifscratcher.gs-loading .gs-canvas {
+  background: rgba(127, 127, 127, 0.08);
+}
+
+.gs-loader {
+  animation: gs-spin 800ms linear infinite;
+  border: 4px solid rgba(127, 127, 127, 0.25);
+  border-top-color: #eab135;
+  border-radius: 50%;
+  height: 42px;
+  left: 50%;
+  margin: -21px 0 0 -21px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  width: 42px;
+  z-index: 2;
+}
+
+@keyframes gs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Hide the OS cursor while the custom cursor is shown */
 .gs-wrap.has-gs-cursor .gs-canvas {
   cursor: none;

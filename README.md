@@ -44,8 +44,13 @@ Settings available.
 	auto   : bool    // Autoplay
 	scrub  : bool    // Scrub on hover / drag
 	cursor : boolean // Add custom cursor
+	loader : bool    // Show a spinner while loading (default on)
 	player : bool    // Show transport controls
 	speed  : number  // Playback speed multiplier
+
+The canvas is sized from the GIF header before the first frame is decoded, so
+the loader sits in a correctly-sized box and the page doesn't reflow when the
+animation appears.
 
 Decoding uses the built-in ImageDecoder API where available (Chrome, Edge,
 Opera) and falls back to a pure-JS parser (gifuct-js) on Firefox and Safari.

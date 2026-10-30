@@ -89,10 +89,17 @@ new GifScratcher('#target');</pre>
   auto   : boolean // Autoplay
   scrub  : boolean // Scrub on hover / drag
   cursor : boolean // Add custom cursor
+  loader : boolean // Show a spinner while loading
   player : boolean // Show transport controls
   speed  : number  // Playback speed multiplier
 }</pre>
       </code>
+
+      <p>
+        The canvas is sized from the GIF header before the first frame is
+        decoded, so the loader sits in the correctly-sized box and the page
+        doesn't reflow when the animation appears.
+      </p>
     </section>
 
     <section>

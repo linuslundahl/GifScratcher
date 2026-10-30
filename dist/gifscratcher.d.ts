@@ -8,6 +8,8 @@ export interface GifScratcherOptions {
     scrub?: boolean;
     /** Add a custom cursor element */
     cursor?: boolean;
+    /** Show a loading spinner while the gif is fetched/decoded */
+    loader?: boolean;
     /** Render transport controls */
     player?: boolean;
     /** Playback speed multiplier */
@@ -31,6 +33,7 @@ export declare class GifScratcher {
     private frames;
     private frameDelay;
     private decoder;
+    private logicalSize;
     private playing;
     private autoRafId;
     private lastTick;
@@ -42,6 +45,7 @@ export declare class GifScratcher {
     private ctx;
     private cursor;
     private wrapper;
+    private loader;
     private playerBar;
     private playBtn;
     private slider;
@@ -50,6 +54,15 @@ export declare class GifScratcher {
     private readonly signal;
     constructor(target: HTMLElement | string, options?: GifScratcherOptions);
     private init;
+    /**
+     * Parses just the GIF header (Logical Screen Descriptor) to read the canvas
+     * width/height without decoding any frames. Returns null if it's not a GIF.
+     * Byte layout: 6-byte signature ("GIF87a"/"GIF89a"), then 2-byte little-endian
+     * width at offset 6 and 2-byte little-endian height at offset 8.
+     */
+    private static readGifSize;
+    /** Sets the canvas pixel size and matching aspect ratio. */
+    private setCanvasSize;
     /**
      * Removes all listeners, the cursor/player UI and the canvas.
      */
@@ -81,6 +94,8 @@ export declare class GifScratcher {
     private ensureWrapper;
     private moveCursor;
     private teardownCursor;
+    private buildLoader;
+    private teardownLoader;
     private buildPlayer;
     private syncPlayer;
     private teardownPlayer;

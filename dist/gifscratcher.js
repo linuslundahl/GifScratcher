@@ -601,14 +601,16 @@ var DEFAULTS = {
   auto: true,
   scrub: true,
   cursor: true,
+  loader: true,
   player: false,
   speed: 1
 };
-var GifScratcher = class {
+var GifScratcher = class _GifScratcher {
   constructor(target, options = {}) {
     this.frames = [];
     this.frameDelay = 100;
     this.decoder = "";
+    this.logicalSize = null;
     this.playing = false;
     this.autoRafId = 0;
     this.lastTick = 0;
@@ -620,6 +622,7 @@ var GifScratcher = class {
     this.ctx = null;
     this.cursor = null;
     this.wrapper = null;
+    this.loader = null;
     this.playerBar = null;
     this.playBtn = null;
     this.slider = null;
@@ -659,14 +662,31 @@ var GifScratcher = class {
     }
     this.ctx = this.canvas.getContext("2d");
     if (fallbackImg) {
+      const iw = fallbackImg.naturalWidth;
+      const ih = fallbackImg.naturalHeight;
+      if (iw && ih) {
+        this.logicalSize = { w: iw, h: ih };
+        this.setCanvasSize(iw, ih);
+      }
+    }
+    if (fallbackImg) {
       fallbackImg.replaceWith(this.canvas);
     } else {
       this.el.appendChild(this.canvas);
     }
+    this.el.classList.add("gs-loading");
+    if (this.options.loader)
+      this.buildLoader();
     try {
       const buf = await (await fetch(this.options.gif)).arrayBuffer();
+      const dims = _GifScratcher.readGifSize(buf);
+      if (dims && (!this.logicalSize || dims.w !== this.logicalSize.w || dims.h !== this.logicalSize.h)) {
+        this.logicalSize = dims;
+        this.setCanvasSize(dims.w, dims.h);
+      }
       this.frames = await this.decode(buf);
-      this.sizeCanvas();
+      if (!this.logicalSize)
+        this.sizeCanvas();
       if (this.options.cursor)
         this.buildCursor();
       if (this.options.player)
@@ -675,13 +695,45 @@ var GifScratcher = class {
       this.render(0);
       if (this.options.auto)
         this.play();
+      this.el.classList.remove("gs-loading");
+      this.el.classList.add("gs-ready");
+      this.teardownLoader();
       this.el.dispatchEvent(new CustomEvent("gifscratcher:ready", {
         detail: { frames: this.frames.length, decoder: this.decoder }
       }));
     } catch (err) {
+      this.el.classList.remove("gs-loading");
+      this.el.classList.add("gs-error");
+      this.teardownLoader();
       console.error("GifScratcher:", err);
       this.el.dispatchEvent(new CustomEvent("gifscratcher:error", { detail: { error: err } }));
     }
+  }
+  /**
+   * Parses just the GIF header (Logical Screen Descriptor) to read the canvas
+   * width/height without decoding any frames. Returns null if it's not a GIF.
+   * Byte layout: 6-byte signature ("GIF87a"/"GIF89a"), then 2-byte little-endian
+   * width at offset 6 and 2-byte little-endian height at offset 8.
+   */
+  static readGifSize(buf) {
+    if (buf.byteLength < 10)
+      return null;
+    const view = new DataView(buf);
+    const sig = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2));
+    if (sig !== "GIF")
+      return null;
+    return {
+      w: view.getUint16(6, true),
+      h: view.getUint16(8, true)
+    };
+  }
+  /** Sets the canvas pixel size and matching aspect ratio. */
+  setCanvasSize(w, h) {
+    if (!this.canvas || !w || !h)
+      return;
+    this.canvas.width = w;
+    this.canvas.height = h;
+    this.canvas.style.aspectRatio = `${w} / ${h}`;
   }
   /**
    * Removes all listeners, the cursor/player UI and the canvas.
@@ -690,13 +742,14 @@ var GifScratcher = class {
     this.abort.abort();
     window.cancelAnimationFrame(this.autoRafId);
     this.teardownCursor();
+    this.teardownLoader();
     this.teardownPlayer();
     this.frames.forEach((f) => f.close?.());
     this.frames = [];
     this.canvas?.remove();
     this.canvas = null;
     this.ctx = null;
-    this.el.classList.remove("gifscratcher", "has-gs-cursor", "active");
+    this.el.classList.remove("gifscratcher", "has-gs-cursor", "active", "gs-loading", "gs-ready", "gs-error");
   }
   /**
    * Update options live, without re-decoding.
@@ -938,6 +991,22 @@ var GifScratcher = class {
     this.cursor = null;
     this.wrapper?.classList.remove("has-gs-cursor", "active");
     this.el.classList.remove("has-gs-cursor");
+  }
+  /* ========================================================================
+     Loader UI
+     ===================================================================== */
+  buildLoader() {
+    if (this.loader)
+      return;
+    this.loader = document.createElement("div");
+    this.loader.className = "gs-loader";
+    this.loader.setAttribute("role", "status");
+    this.loader.setAttribute("aria-label", "Loading animation");
+    this.el.appendChild(this.loader);
+  }
+  teardownLoader() {
+    this.loader?.remove();
+    this.loader = null;
   }
   /* ========================================================================
      Player UI

@@ -20,6 +20,8 @@ export interface GifScratcherOptions {
   scrub?: boolean;
   /** Add a custom cursor element */
   cursor?: boolean;
+  /** Show a loading spinner while the gif is fetched/decoded */
+  loader?: boolean;
   /** Render transport controls */
   player?: boolean;
   /** Playback speed multiplier */
@@ -33,6 +35,7 @@ const DEFAULTS: ResolvedOptions = {
   auto: true,
   scrub: true,
   cursor: true,
+  loader: true,
   player: false,
   speed: 1,
 };
@@ -57,6 +60,8 @@ export class GifScratcher {
   private frames: (VideoFrame | ImageBitmap)[] = [];
   private frameDelay = 100; // ms per frame, read from the file
   private decoder = '';
+  // The authoritative canvas size, from the GIF header's logical screen size.
+  private logicalSize: { w: number; h: number } | null = null;
 
   // Playback state.
   private playing = false;
@@ -72,6 +77,7 @@ export class GifScratcher {
   private ctx: CanvasRenderingContext2D | null = null;
   private cursor: HTMLElement | null = null;
   private wrapper: HTMLElement | null = null;
+  private loader: HTMLElement | null = null;
 
   private playerBar: HTMLElement | null = null;
   private playBtn: HTMLButtonElement | null = null;
@@ -133,16 +139,44 @@ export class GifScratcher {
     }
     this.ctx = this.canvas.getContext('2d')!;
 
+    // If there's a fallback <img>, the browser has already laid it out — copy
+    // its rendered aspect ratio onto the canvas immediately, so the box is the
+    // right size from the very first paint (before the fetch even resolves).
+    if (fallbackImg) {
+      const iw = fallbackImg.naturalWidth;
+      const ih = fallbackImg.naturalHeight;
+      if (iw && ih) {
+        this.logicalSize = { w: iw, h: ih };
+        this.setCanvasSize(iw, ih);
+      }
+    }
+
     if (fallbackImg) {
       fallbackImg.replaceWith(this.canvas);
     } else {
       this.el.appendChild(this.canvas);
     }
 
+    // Reserve layout space and show a loader while we fetch + decode.
+    this.el.classList.add('gs-loading');
+    if (this.options.loader) this.buildLoader();
+
     try {
       const buf = await (await fetch(this.options.gif)).arrayBuffer();
+
+      // The GIF header (Logical Screen Descriptor) holds the logical canvas
+      // size. This is the authoritative size: frames are drawn INTO this box,
+      // and we never resize afterwards — so the loader sits in the correctly
+      // sized box and the layout doesn't jump when the animation appears.
+      const dims = GifScratcher.readGifSize(buf);
+      if (dims && (!this.logicalSize || dims.w !== this.logicalSize.w || dims.h !== this.logicalSize.h)) {
+        this.logicalSize = dims;
+        this.setCanvasSize(dims.w, dims.h);
+      }
+
       this.frames = await this.decode(buf);
-      this.sizeCanvas();
+      // If neither the <img> nor the header gave a size, use the first frame.
+      if (!this.logicalSize) this.sizeCanvas();
 
       if (this.options.cursor) this.buildCursor();
       if (this.options.player) this.buildPlayer();
@@ -150,17 +184,51 @@ export class GifScratcher {
 
       this.render(0);
       if (this.options.auto) this.play();
+      this.el.classList.remove('gs-loading');
+      this.el.classList.add('gs-ready');
+      this.teardownLoader();
       this.el.dispatchEvent(
         new CustomEvent('gifscratcher:ready', {
           detail: { frames: this.frames.length, decoder: this.decoder },
         })
       );
     } catch (err) {
+      this.el.classList.remove('gs-loading');
+      this.el.classList.add('gs-error');
+      this.teardownLoader();
       console.error('GifScratcher:', err);
       this.el.dispatchEvent(
         new CustomEvent('gifscratcher:error', { detail: { error: err } })
       );
     }
+  }
+
+  /**
+   * Parses just the GIF header (Logical Screen Descriptor) to read the canvas
+   * width/height without decoding any frames. Returns null if it's not a GIF.
+   * Byte layout: 6-byte signature ("GIF87a"/"GIF89a"), then 2-byte little-endian
+   * width at offset 6 and 2-byte little-endian height at offset 8.
+   */
+  private static readGifSize(buf: ArrayBuffer): { w: number; h: number } | null {
+    if (buf.byteLength < 10) return null;
+    const view = new DataView(buf);
+    // Verify the GIF signature.
+    const sig = String.fromCharCode(
+      view.getUint8(0), view.getUint8(1), view.getUint8(2)
+    );
+    if (sig !== 'GIF') return null;
+    return {
+      w: view.getUint16(6, true),
+      h: view.getUint16(8, true),
+    };
+  }
+
+  /** Sets the canvas pixel size and matching aspect ratio. */
+  private setCanvasSize(w: number, h: number): void {
+    if (!this.canvas || !w || !h) return;
+    this.canvas.width = w;
+    this.canvas.height = h;
+    this.canvas.style.aspectRatio = `${w} / ${h}`;
   }
 
   /**
@@ -170,13 +238,14 @@ export class GifScratcher {
     this.abort.abort();
     window.cancelAnimationFrame(this.autoRafId);
     this.teardownCursor();
+    this.teardownLoader();
     this.teardownPlayer();
     this.frames.forEach((f) => (f as VideoFrame).close?.());
     this.frames = [];
     this.canvas?.remove();
     this.canvas = null;
     this.ctx = null;
-    this.el.classList.remove('gifscratcher', 'has-gs-cursor', 'active');
+    this.el.classList.remove('gifscratcher', 'has-gs-cursor', 'active', 'gs-loading', 'gs-ready', 'gs-error');
   }
 
   /**
@@ -441,6 +510,24 @@ export class GifScratcher {
     this.cursor = null;
     this.wrapper?.classList.remove('has-gs-cursor', 'active');
     this.el.classList.remove('has-gs-cursor');
+  }
+
+  /* ========================================================================
+     Loader UI
+     ===================================================================== */
+
+  private buildLoader(): void {
+    if (this.loader) return;
+    this.loader = document.createElement('div');
+    this.loader.className = 'gs-loader';
+    this.loader.setAttribute('role', 'status');
+    this.loader.setAttribute('aria-label', 'Loading animation');
+    this.el.appendChild(this.loader);
+  }
+
+  private teardownLoader(): void {
+    this.loader?.remove();
+    this.loader = null;
   }
 
   /* ========================================================================
