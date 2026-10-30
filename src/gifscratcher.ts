@@ -142,7 +142,7 @@ export class GifScratcher {
   destroy(): void {
     this.abort.abort();
     window.cancelAnimationFrame(this.autoRafId);
-    this.cursor?.remove();
+    this.teardownCursor();
     this.teardownPlayer();
     this.frames.forEach((f) => (f as VideoFrame).close?.());
     this.frames = [];
@@ -372,10 +372,20 @@ export class GifScratcher {
   private buildCursor(): void {
     if (this.cursor || !this.options.cursor) return;
     this.ensureWrapper();
+
+    // The shake wrapper carries the periodic "you can scrub me" wiggle via a
+    // CSS transform keyframe, while .gs-cursor keeps the JS-driven positioning
+    // transform. Nesting them means the two transforms compose instead of
+    // fighting over the same property on one element.
+    const shake = document.createElement('div');
+    shake.className = 'gs-shake';
+
     this.cursor = document.createElement('div');
     this.cursor.className = 'gs-cursor';
     this.cursor.setAttribute('aria-hidden', 'true');
-    this.wrapper!.appendChild(this.cursor);
+
+    shake.appendChild(this.cursor);
+    this.wrapper!.appendChild(shake);
     this.wrapper!.classList.add('has-gs-cursor');
     this.el.classList.add('has-gs-cursor');
   }
@@ -400,7 +410,7 @@ export class GifScratcher {
   }
 
   private teardownCursor(): void {
-    this.cursor?.remove();
+    this.cursor?.closest('.gs-shake')?.remove();
     this.cursor = null;
     this.wrapper?.classList.remove('has-gs-cursor', 'active');
     this.el.classList.remove('has-gs-cursor');

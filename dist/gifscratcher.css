@@ -1,18 +1,23 @@
-@keyframes pulse_animation {
-  from {
-    opacity: 1;
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
   }
-  45% {
-    opacity: 1;
+  /* Quick left-right wiggle, then rest until the next cycle */
+  2% {
+    transform: translateX(-6px);
   }
-  50% {
-    opacity: 0.55;
+  4% {
+    transform: translateX(6px);
   }
-  55% {
-    opacity: 1;
+  6% {
+    transform: translateX(-6px);
   }
-  to {
-    opacity: 1;
+  8% {
+    transform: translateX(6px);
+  }
+  10% {
+    transform: translateX(0);
   }
 }
 
@@ -45,8 +50,19 @@ body {
   transform: translate3d(0, 0, 0);
 }
 
+/* Shake layer: fills the widget and carries the periodic left-right wiggle.
+   It owns no positioning of its own children — .gs-cursor inside it keeps the
+   JS-driven transform — so the shake transform and the positioning transform
+   live on different elements and compose instead of conflicting. */
+.gs-shake {
+  animation: shake 3000ms infinite ease-in-out;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  will-change: transform;
+}
+
 .gs-cursor {
-  animation: pulse_animation 3000ms infinite cubic-bezier(0.17, 0.67, 0.42, 0);
   background: #eee;
   background-clip: padding-box;
   border-radius: 50%;
@@ -90,8 +106,12 @@ body {
 }
 
 .active .gs-cursor {
-  animation: none;
   transition: none;
+}
+
+/* Stop the hint shake while the user is interacting. */
+.active .gs-shake {
+  animation: none;
 }
 
 .gs-touch .gs-cursor {

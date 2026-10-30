@@ -672,7 +672,7 @@ var GifScratcher = class {
   destroy() {
     this.abort.abort();
     window.cancelAnimationFrame(this.autoRafId);
-    this.cursor?.remove();
+    this.teardownCursor();
     this.teardownPlayer();
     this.frames.forEach((f) => f.close?.());
     this.frames = [];
@@ -888,10 +888,13 @@ var GifScratcher = class {
     if (this.cursor || !this.options.cursor)
       return;
     this.ensureWrapper();
+    const shake = document.createElement("div");
+    shake.className = "gs-shake";
     this.cursor = document.createElement("div");
     this.cursor.className = "gs-cursor";
     this.cursor.setAttribute("aria-hidden", "true");
-    this.wrapper.appendChild(this.cursor);
+    shake.appendChild(this.cursor);
+    this.wrapper.appendChild(shake);
     this.wrapper.classList.add("has-gs-cursor");
     this.el.classList.add("has-gs-cursor");
   }
@@ -914,7 +917,7 @@ var GifScratcher = class {
     this.cursor.style.transform = `translate3d(${dx}px, ${dy}px, 0) translate(-50%, -50%) scale(${scale})`;
   }
   teardownCursor() {
-    this.cursor?.remove();
+    this.cursor?.closest(".gs-shake")?.remove();
     this.cursor = null;
     this.wrapper?.classList.remove("has-gs-cursor", "active");
     this.el.classList.remove("has-gs-cursor");
