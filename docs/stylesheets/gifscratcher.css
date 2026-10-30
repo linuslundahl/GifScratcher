@@ -1,24 +1,18 @@
 @keyframes pulse_animation {
   from {
-    transform: translateX(0);
-  }
-  43% {
-    transform: translateX(0);
+    opacity: 1;
   }
   45% {
-    transform: translateX(25%);
+    opacity: 1;
   }
   50% {
-    transform: translateX(-25%);
+    opacity: 0.55;
   }
-  53% {
-    transform: translateX(10%);
-  }
-  60% {
-    transform: translateX(0);
+  55% {
+    opacity: 1;
   }
   to {
-    transform: translateX(0);
+    opacity: 1;
   }
 }
 
@@ -44,6 +38,10 @@ body {
   display: block;
   user-select: none;
   -webkit-user-drag: none;
+  /* Promote the sprite to its own compositor layer so frame switches
+     are cheap GPU transforms, not repaints. */
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 
 .gs-cursor {
@@ -53,12 +51,15 @@ body {
   border-radius: 50%;
   border: 5px solid rgba(0, 0, 0, 0.25);
   height: 50px;
-  left: 50%;
+  left: 0;
   margin: -30px 0 0 -30px;
   position: absolute;
-  top: 50%;
-  transition: all 100ms ease-in;
+  top: 0;
+  transition: transform 100ms ease-in;
   width: 50px;
+  /* Positioned purely via transform (set from JS) so it stays on the
+     compositor and never triggers layout. */
+  will-change: transform;
 }
 
 .gs-cursor::before,
@@ -83,15 +84,14 @@ body {
 }
 
 .active .gs-cursor {
-  transform: scale(0.6);
-  transition: none;
   animation: none;
+  transition: none;
 }
 
 .gs-touch .gs-cursor {
-  transition: all 100ms ease-in;
+  transition: transform 100ms ease-in;
 }
 
 .gs-touch.active .gs-cursor {
-  transform: scale(0);
+  opacity: 0;
 }

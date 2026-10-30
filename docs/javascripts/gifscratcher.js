@@ -16,6 +16,12 @@ const DEFAULTS = {
 /**
  * GifScratcher — a dependency-free GIF "scratching" widget.
  *
+ * Performance notes:
+ * - Frame switching and cursor movement are GPU-composited `transform`s.
+ * - The element's bounding rect is cached and only re-measured on
+ *   resize/scroll, never inside pointermove handlers (avoids forced layout).
+ * - Pointer input is coalesced and applied at most once per animation frame.
+ *
  * @example
  * new GifScratcher('#target', { sprite: 'animation.jpg', frames: 10 });
  */
@@ -23,9 +29,14 @@ export class GifScratcher {
     constructor(target, options = {}) {
         this.cursor = null;
         this.size = { w: 0, h: 0 };
+        this.rect = { left: 0, top: 0 };
+        this.frameWidth = 0;
         this.oldFrame = 0;
         this.autoFrame = 0;
         this.userAction = false;
+        // rAF-coalesced pointer state
+        this.pendingX = null;
+        this.pointerRafId = 0;
         this.abort = new AbortController();
         this.signal = this.abort.signal;
         this.resizeObserver = null;
@@ -91,6 +102,7 @@ export class GifScratcher {
         this.abort.abort();
         this.resizeObserver?.disconnect();
         window.cancelAnimationFrame(this.rafId);
+        window.cancelAnimationFrame(this.pointerRafId);
         this.cursor?.remove();
         this.el.classList.remove('gifscratcher', 'has-gs-cursor', 'gs-auto', 'gs-touch', 'gs-hover', 'gs-drag', 'active');
         this.image.classList.remove('gs-img');
@@ -138,7 +150,7 @@ export class GifScratcher {
         }, { signal: this.signal });
         this.el.addEventListener('pointermove', (e) => {
             if (this.userAction) {
-                this.play(this.xPosition(e));
+                this.queuePlay(e.clientX);
             }
         }, { signal: this.signal });
         return this;
@@ -147,7 +159,7 @@ export class GifScratcher {
      * Hover interaction: moving over the element scratches.
      */
     hoverInteraction() {
-        this.el.addEventListener('pointermove', (e) => this.play(this.xPosition(e)), {
+        this.el.addEventListener('pointermove', (e) => this.queuePlay(e.clientX), {
             signal: this.signal,
         });
         return this;
@@ -172,7 +184,7 @@ export class GifScratcher {
         }, { signal: this.signal });
         this.el.addEventListener('pointermove', (e) => {
             if (dragging) {
-                this.play(this.xPosition(e));
+                this.queuePlay(e.clientX);
             }
         }, { signal: this.signal });
         return this;
@@ -206,45 +218,78 @@ export class GifScratcher {
             this.el.classList.remove('active');
             this.userAction = false;
             this.autoFrame = this.oldFrame;
-            this.cursor?.removeAttribute('style');
+            if (this.cursor) {
+                this.cursor.style.transform = '';
+            }
         }, { signal: this.signal });
         if (this.cursor) {
             this.el.addEventListener('pointermove', (e) => {
-                const rect = this.el.getBoundingClientRect();
-                this.cursor?.style.setProperty('left', `${e.clientX - rect.left}px`);
-                this.cursor?.style.setProperty('top', `${e.clientY - rect.top}px`);
+                // Uses the cached rect — no forced layout. transform is composited.
+                // Scale shrinks the cursor while active; compose both in one transform.
+                const scale = this.userAction ? 0.6 : 1;
+                this.cursor?.style.setProperty('transform', `translate3d(${e.clientX - this.rect.left}px, ${e.clientY - this.rect.top}px, 0) scale(${scale})`);
             }, { signal: this.signal });
         }
         return this;
     }
     /**
      * Keeps the sprite sized to `frames * container width` and re-measures
-     * whenever the element changes size.
+     * whenever the element changes size or the page scrolls.
      */
     observeResize() {
         this.resizeObserver = new ResizeObserver(() => this.resize());
         this.resizeObserver.observe(this.el);
+        // Keep the cached rect fresh on scroll (position changes, size does not).
+        window.addEventListener('scroll', () => this.measure(), {
+            passive: true,
+            signal: this.signal,
+        });
     }
     /**
-     * Re-measures the element. Called automatically by the ResizeObserver,
-     * but can also be invoked manually.
+     * Re-measures the element's size and position. Called automatically by the
+     * ResizeObserver and on scroll, but can also be invoked manually.
      */
     resize() {
         if (this.image.offsetParent === null)
             return this;
         this.size = { w: this.el.offsetWidth, h: this.el.offsetHeight };
+        this.frameWidth = this.size.w / this.settings.frames || 0;
         this.image.style.width = `${this.settings.frames * this.size.w}px`;
-        this.play(0);
+        this.measure();
+        this.play(this.size.w * (this.oldFrame / this.settings.frames));
         return this;
+    }
+    /**
+     * Caches the element's viewport offset. Cheap to call occasionally;
+     * expensive to call on every pointermove, so it lives here.
+     */
+    measure() {
+        const r = this.el.getBoundingClientRect();
+        this.rect = { left: r.left, top: r.top };
+    }
+    /**
+     * Coalesces pointer input so the frame is updated at most once per
+     * animation frame, no matter how fast pointermove fires.
+     */
+    queuePlay(clientX) {
+        this.pendingX = clientX;
+        if (this.pointerRafId)
+            return;
+        this.pointerRafId = window.requestAnimationFrame(() => {
+            this.pointerRafId = 0;
+            if (this.pendingX !== null) {
+                this.play(this.pendingX - this.rect.left);
+                this.pendingX = null;
+            }
+        });
     }
     /**
      * Calculates the current frame from an x coordinate and switches to it.
      */
     play(xcoord) {
-        if (!this.settings.frames || !this.size.w)
+        if (!this.frameWidth)
             return this;
-        const frameWidth = Math.round((this.size.w / this.settings.frames) * 100) / 100;
-        this.switchFrame(Math.max(0, Math.floor(xcoord / frameWidth)));
+        this.switchFrame(Math.max(0, Math.floor(xcoord / this.frameWidth)));
         return this;
     }
     /**
@@ -252,17 +297,10 @@ export class GifScratcher {
      */
     switchFrame(frame) {
         if (frame !== this.oldFrame && frame < this.settings.frames) {
-            this.image.style.transform = `translateX(${-frame * this.size.w}px)`;
+            this.image.style.transform = `translate3d(${-frame * this.size.w}px, 0, 0)`;
             this.oldFrame = frame;
         }
         return this;
-    }
-    /**
-     * X position of a pointer event relative to the element. Computed on
-     * demand so it stays correct across scrolling and layout changes.
-     */
-    xPosition(e) {
-        return e.clientX - this.el.getBoundingClientRect().left;
     }
 }
 //# sourceMappingURL=gifscratcher.js.map

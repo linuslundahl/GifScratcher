@@ -16,6 +16,12 @@ export interface GifScratcherOptions {
 /**
  * GifScratcher — a dependency-free GIF "scratching" widget.
  *
+ * Performance notes:
+ * - Frame switching and cursor movement are GPU-composited `transform`s.
+ * - The element's bounding rect is cached and only re-measured on
+ *   resize/scroll, never inside pointermove handlers (avoids forced layout).
+ * - Pointer input is coalesced and applied at most once per animation frame.
+ *
  * @example
  * new GifScratcher('#target', { sprite: 'animation.jpg', frames: 10 });
  */
@@ -25,9 +31,13 @@ export declare class GifScratcher {
     private readonly image;
     private cursor;
     private size;
+    private rect;
+    private frameWidth;
     private oldFrame;
     private autoFrame;
     private userAction;
+    private pendingX;
+    private pointerRafId;
     private readonly abort;
     private readonly signal;
     private resizeObserver;
@@ -75,14 +85,24 @@ export declare class GifScratcher {
     hover(): this;
     /**
      * Keeps the sprite sized to `frames * container width` and re-measures
-     * whenever the element changes size.
+     * whenever the element changes size or the page scrolls.
      */
     private observeResize;
     /**
-     * Re-measures the element. Called automatically by the ResizeObserver,
-     * but can also be invoked manually.
+     * Re-measures the element's size and position. Called automatically by the
+     * ResizeObserver and on scroll, but can also be invoked manually.
      */
     resize(): this;
+    /**
+     * Caches the element's viewport offset. Cheap to call occasionally;
+     * expensive to call on every pointermove, so it lives here.
+     */
+    private measure;
+    /**
+     * Coalesces pointer input so the frame is updated at most once per
+     * animation frame, no matter how fast pointermove fires.
+     */
+    private queuePlay;
     /**
      * Calculates the current frame from an x coordinate and switches to it.
      */
@@ -91,9 +111,4 @@ export declare class GifScratcher {
      * Switches frame by translating the sprite (GPU-composited).
      */
     switchFrame(frame: number): this;
-    /**
-     * X position of a pointer event relative to the element. Computed on
-     * demand so it stays correct across scrolling and layout changes.
-     */
-    private xPosition;
 }
