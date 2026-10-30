@@ -225,9 +225,12 @@ export class GifScratcher {
         if (this.cursor) {
             this.el.addEventListener('pointermove', (e) => {
                 // Uses the cached rect — no forced layout. transform is composited.
-                // Scale shrinks the cursor while active; compose both in one transform.
+                // The cursor's resting spot is the element's center (left/top: 50%),
+                // so translate from that center to the pointer.
+                const dx = e.clientX - this.rect.left - this.size.w / 2;
+                const dy = e.clientY - this.rect.top - this.size.h / 2;
                 const scale = this.userAction ? 0.6 : 1;
-                this.cursor?.style.setProperty('transform', `translate3d(${e.clientX - this.rect.left}px, ${e.clientY - this.rect.top}px, 0) scale(${scale})`);
+                this.cursor?.style.setProperty('transform', `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`);
             }, { signal: this.signal });
         }
         return this;
