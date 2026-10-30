@@ -30,7 +30,8 @@ body {
   position: relative;
 }
 
-.gifscratcher.has-gs-cursor {
+.gifscratcher.has-gs-cursor,
+.gifscratcher.has-gs-cursor * {
   cursor: none;
 }
 
