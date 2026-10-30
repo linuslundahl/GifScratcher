@@ -1,7 +1,7 @@
 {
   "name": "GifScratcher",
   "version": "1.0.0",
-  "description": "A standalone, dependency-free browser widget for 'scratching' GIFs. Distributed as built files in dist/ — not an npm package.",
+  "description": "A lightweight, dependency-free JavaScript library for 'scratching' GIFs. Distributed as built files in dist/ — not an npm package.",
   "license": "MIT",
   "type": "module",
   "private": true,
