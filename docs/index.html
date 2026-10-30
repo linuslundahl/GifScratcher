@@ -35,7 +35,9 @@
     <section>
       <h2>Demo</h2>
 
-      <div id="animation-1" class="target"></div>
+      <div id="animation-1" class="target">
+        <img src="animations/street.gif" alt="Street scene animation">
+      </div>
 
       <div class="settings">
         <label><input type="checkbox" id="opt-auto" checked> Autoplay</label>
@@ -60,23 +62,30 @@
         and Safari.
       </p>
 
+      <p>
+        The <code class="code-inline">&lt;img&gt;</code> is a progressive-enhancement fallback: with
+        JavaScript disabled it simply shows the animated gif, and with JS enabled
+        GifScratcher swaps it for a scrubbable canvas. You can also pass the
+        source explicitly with <span class="monospace">gif: 'animation.gif'</span>.
+      </p>
+
       <code class="code-block">
-        <pre>&lt;div id="target"&gt;&lt;/div&gt;</pre>
+        <pre>&lt;div id="target"&gt;
+  &lt;img src="animation.gif" alt=""&gt;
+&lt;/div&gt;</pre>
       </code>
 
       <code class="code-block">
       <pre>import { GifScratcher } from './javascripts/gifscratcher.js';
 
-new GifScratcher('#target', {
-  gif : 'animation.gif'
-});</pre>
+new GifScratcher('#target');</pre>
       </code>
 
       <h3>Settings</h3>
 
       <code class="code-block">
         <pre>{
-  gif    : string  // Real .gif to decode & scrub
+  gif    : string  // Real .gif (optional if target has an &lt;img&gt;)
   auto   : boolean // Autoplay
   scrub  : boolean // Scrub on hover / drag
   cursor : boolean // Add custom cursor
@@ -158,7 +167,6 @@ new GifScratcherSprite('#target', {
     import { GifScratcher } from './javascripts/gifscratcher.js';
 
     const scratcher = new GifScratcher('#animation-1', {
-      gif: 'animations/street.gif',
       auto: true,
       scrub: true,
       cursor: true,

@@ -176,6 +176,14 @@ section {
   overflow: hidden;
 }
 
+/* The fallback <img> (shown when JS is disabled, or before the canvas swaps
+   in) fills the target just like the canvas does. */
+.target img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .hint {
   color: var(--muted);
   font-size: 0.9em;

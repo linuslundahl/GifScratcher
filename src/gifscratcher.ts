@@ -11,7 +11,8 @@
 import type { ParsedFrame } from 'gifuct-js';
 
 export interface GifScratcherOptions {
-  /** URL of a real animated .gif to decode and scrub */
+  /** URL of a real animated .gif. Optional when the target contains an
+      `<img src="...gif">` — the image's src is used instead. */
   gif?: string;
   /** Autoplay the animation */
   auto?: boolean;
@@ -93,8 +94,20 @@ export class GifScratcher {
     this.el = el;
     this.options = { ...DEFAULTS, ...options };
 
+    // Resolve the .gif source: the `gif` option wins, otherwise read it from
+    // an <img> inside the target (progressive enhancement — with no JS the
+    // <img> simply shows the animated gif).
     if (!this.options.gif) {
-      throw new Error('GifScratcher: a `gif` source is required.');
+      const img = el.querySelector('img');
+      if (img instanceof HTMLImageElement && img.src) {
+        this.options.gif = img.src;
+      }
+    }
+
+    if (!this.options.gif) {
+      throw new Error(
+        'GifScratcher: no .gif source. Pass `gif` or put an <img src="....gif"> inside the target.'
+      );
     }
 
     this.el.classList.add('gifscratcher');
@@ -106,11 +119,25 @@ export class GifScratcher {
      ===================================================================== */
 
   private async init(): Promise<void> {
-    // Build a canvas inside the target element.
+    // Swap the fallback <img> (if present) for a canvas in the same spot.
+    const fallbackImg = this.el.querySelector('img');
+
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'gs-canvas';
+    if (fallbackImg) {
+      // Carry over accessibility/alt text.
+      if (fallbackImg.alt) {
+        this.canvas.setAttribute('role', 'img');
+        this.canvas.setAttribute('aria-label', fallbackImg.alt);
+      }
+    }
     this.ctx = this.canvas.getContext('2d')!;
-    this.el.appendChild(this.canvas);
+
+    if (fallbackImg) {
+      fallbackImg.replaceWith(this.canvas);
+    } else {
+      this.el.appendChild(this.canvas);
+    }
 
     try {
       const buf = await (await fetch(this.options.gif)).arrayBuffer();

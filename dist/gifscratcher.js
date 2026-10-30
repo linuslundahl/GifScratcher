@@ -633,7 +633,13 @@ var GifScratcher = class {
     this.el = el;
     this.options = { ...DEFAULTS, ...options };
     if (!this.options.gif) {
-      throw new Error("GifScratcher: a `gif` source is required.");
+      const img = el.querySelector("img");
+      if (img instanceof HTMLImageElement && img.src) {
+        this.options.gif = img.src;
+      }
+    }
+    if (!this.options.gif) {
+      throw new Error('GifScratcher: no .gif source. Pass `gif` or put an <img src="....gif"> inside the target.');
     }
     this.el.classList.add("gifscratcher");
     this.init();
@@ -642,10 +648,21 @@ var GifScratcher = class {
      Setup / teardown
      ===================================================================== */
   async init() {
+    const fallbackImg = this.el.querySelector("img");
     this.canvas = document.createElement("canvas");
     this.canvas.className = "gs-canvas";
+    if (fallbackImg) {
+      if (fallbackImg.alt) {
+        this.canvas.setAttribute("role", "img");
+        this.canvas.setAttribute("aria-label", fallbackImg.alt);
+      }
+    }
     this.ctx = this.canvas.getContext("2d");
-    this.el.appendChild(this.canvas);
+    if (fallbackImg) {
+      fallbackImg.replaceWith(this.canvas);
+    } else {
+      this.el.appendChild(this.canvas);
+    }
     try {
       const buf = await (await fetch(this.options.gif)).arrayBuffer();
       this.frames = await this.decode(buf);

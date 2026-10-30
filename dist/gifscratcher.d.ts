@@ -1,5 +1,6 @@
 export interface GifScratcherOptions {
-    /** URL of a real animated .gif to decode and scrub */
+    /** URL of a real animated .gif. Optional when the target contains an
+        `<img src="...gif">` — the image's src is used instead. */
     gif?: string;
     /** Autoplay the animation */
     auto?: boolean;

@@ -140,6 +140,13 @@ body {
   cursor: ew-resize;
 }
 
+/* The no-JS / pre-swap fallback <img> fills the widget like the canvas. */
+.gifscratcher > img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* Hide the OS cursor while the custom cursor is shown */
 .gs-wrap.has-gs-cursor .gs-canvas {
   cursor: none;

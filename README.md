@@ -23,20 +23,24 @@ Link the widget stylesheet (it styles the cursor, canvas and player):
 
 	<link rel="stylesheet" href="./dist/gifscratcher.css">
 
-Point GifScratcher at an element and a real animated .gif — it decodes it onto
-a canvas and lets you scrub, play, pause and step through frames:
+Put a real animated .gif inside the target as an `<img>` — with JavaScript
+disabled it just shows the gif, and with JS enabled GifScratcher swaps it for a
+canvas you can scrub, play, pause and step through:
 
-	<div id="target"></div>
+	<div id="target">
+  		<img src="animation.gif" alt="">
+	</div>
 
 	import { GifScratcher } from './dist/gifscratcher.js';
 
-	new GifScratcher('#target', {
-  		gif : 'animation.gif'
-	});
+	new GifScratcher('#target');
+
+You can also pass the source explicitly with `gif: 'animation.gif'` (it takes
+precedence over the `<img>`).
 
 Settings available.
 
-	gif    : string  // Real .gif to decode & scrub
+	gif    : string  // Real .gif (optional if target has an <img>)
 	auto   : bool    // Autoplay
 	scrub  : bool    // Scrub on hover / drag
 	cursor : boolean // Add custom cursor
