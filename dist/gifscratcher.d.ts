@@ -1,114 +1,86 @@
-/*! gifscratcher.ts (c) Linus Lundahl | MIT license */
 export interface GifScratcherOptions {
-    /** Image sprite URL */
-    sprite?: string;
-    /** Number of frames in the sprite */
-    frames?: number;
-    /** Interaction mode: 'hover' | 'drag' */
-    interaction?: 'hover' | 'drag';
+    /** URL of a real animated .gif to decode and scrub */
+    gif?: string;
     /** Autoplay the animation */
     auto?: boolean;
+    /** Scrub by moving/dragging over the element */
+    scrub?: boolean;
     /** Add a custom cursor element */
     cursor?: boolean;
-    /** Autoplay speed (delay between frames, in rAF ticks) */
+    /** Render transport controls */
+    player?: boolean;
+    /** Playback speed multiplier */
     speed?: number;
 }
 /**
  * GifScratcher — a dependency-free GIF "scratching" widget.
  *
- * Performance notes:
- * - Frame switching and cursor movement are GPU-composited `transform`s.
- * - The element's bounding rect is cached and only re-measured on
- *   resize/scroll, never inside pointermove handlers (avoids forced layout).
- * - Pointer input is coalesced and applied at most once per animation frame.
+ * It decodes a real animated .gif onto a canvas (using the built-in
+ * ImageDecoder API where available, a pure-JS gifuct-js fallback otherwise)
+ * and lets you scrub, play, pause and step through frames.
+ *
+ * (A standalone sprite-strip variant lives in `gifscratcher-sprite.ts`.)
  *
  * @example
- * new GifScratcher('#target', { sprite: 'animation.jpg', frames: 10 });
+ * new GifScratcher('#target', { gif: 'animation.gif' });
  */
 export declare class GifScratcher {
-    private readonly settings;
+    private readonly options;
     private readonly el;
-    private readonly image;
+    private frames;
+    private frameDelay;
+    private decoder;
+    private playing;
+    private autoRafId;
+    private lastTick;
+    private acc;
+    private currentFrame;
+    private hovering;
+    private scrubbing;
+    private canvas;
+    private ctx;
     private cursor;
-    private size;
-    private rect;
-    private frameWidth;
-    private oldFrame;
-    private autoFrame;
-    private userAction;
-    private pendingX;
-    private pointerRafId;
+    private wrapper;
+    private playerBar;
+    private playBtn;
+    private slider;
+    private frameLabel;
     private readonly abort;
     private readonly signal;
-    private resizeObserver;
-    private rafId;
     constructor(target: HTMLElement | string, options?: GifScratcherOptions);
+    private init;
     /**
-     * True on devices without hover capability (replaces UA sniffing).
-     */
-    private static get isTouchDevice();
-    /**
-     * Preloads the sprite, then wires up sizing, cursor and interaction.
-     */
-    private setup;
-    /**
-     * Removes all listeners, observers, the cursor element and CSS classes.
+     * Removes all listeners, the cursor/player UI and the canvas.
      */
     destroy(): void;
     /**
-     * Appends a cursor div to the element.
+     * Update options live, without re-decoding.
      */
-    addCursor(): this;
-    /**
-     * Preloads the sprite.
-     */
-    preload(callback?: () => void): this;
-    /**
-     * Touch interaction: press and move to scratch.
-     */
-    touchInteraction(): this;
-    /**
-     * Hover interaction: moving over the element scratches.
-     */
-    hoverInteraction(): this;
-    /**
-     * Drag interaction: press the cursor and move to scratch.
-     */
-    dragInteraction(): this;
-    /**
-     * Autoplays the animation until the user interacts.
-     */
-    auto(): this;
-    /**
-     * Tracks pointer enter/leave to toggle the active state and custom cursor.
-     */
-    hover(): this;
-    /**
-     * Keeps the sprite sized to `frames * container width` and re-measures
-     * whenever the element changes size or the page scrolls.
-     */
-    private observeResize;
-    /**
-     * Re-measures the element's size and position. Called automatically by the
-     * ResizeObserver and on scroll, but can also be invoked manually.
-     */
-    resize(): this;
-    /**
-     * Caches the element's viewport offset. Cheap to call occasionally;
-     * expensive to call on every pointermove, so it lives here.
-     */
-    private measure;
-    /**
-     * Coalesces pointer input so the frame is updated at most once per
-     * animation frame, no matter how fast pointermove fires.
-     */
-    private queuePlay;
-    /**
-     * Calculates the current frame from an x coordinate and switches to it.
-     */
-    play(xcoord: number): this;
-    /**
-     * Switches frame by translating the sprite (GPU-composited).
-     */
-    switchFrame(frame: number): this;
+    setOptions(options: Partial<GifScratcherOptions>): this;
+    private decode;
+    private decodeWithGifuct;
+    private sizeCanvas;
+    /** Render a frame (wraps around). */
+    render(i: number): this;
+    /** Start playback. */
+    play(): this;
+    /** Stop playback. */
+    stop(): this;
+    /** Rewind one frame. */
+    rewind(): this;
+    /** Forward one frame. */
+    forward(): this;
+    /** The current frame index. */
+    get frame(): number;
+    /** True while playing. */
+    get isPlaying(): boolean;
+    private bindInteraction;
+    private scrubTo;
+    private buildCursor;
+    private ensureWrapper;
+    private moveCursor;
+    private teardownCursor;
+    private buildPlayer;
+    private syncPlayer;
+    private teardownPlayer;
 }

@@ -17,24 +17,45 @@ p {
   margin: 0;
 }
 
+:root {
+  --bg: #eee;
+  --text: #111;
+  --muted: #6a6a6a;
+  --panel: #fff;
+  --accent: #eab135;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1f21;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --panel: #26282b;
+    --accent: #eab135;
+    color-scheme: dark;
+  }
+}
+
 body {
-  background: #eee;
-  color: #111;
+  background: var(--bg);
+  color: var(--text);
   font: normal normal 1em/150% "Gentium Basic", serif;
+  transition: background-color 200ms, color 200ms;
 }
 
 a,
 a:link,
 a:visited {
-  color: #111;
-  border-bottom: 2px solid #eab135;
+  color: var(--text);
+  border-bottom: 2px solid var(--accent);
   text-decoration: none;
   transition: all 100ms ease-in;
 }
 
 a:hover,
 a:active {
-  border-bottom: 4px solid #eab135;
+  border-bottom: 4px solid var(--accent);
 }
 
 .button,
@@ -42,8 +63,8 @@ a:active {
 .button:visited {
   background: none;
   border-radius: 0.3em;
-  border: 2px solid #111;
-  color: #111;
+  border: 2px solid var(--text);
+  color: var(--text);
   display: inline-block;
   font: normal 600 1em/100% avenir, helvetica, arial, sans-serif;
   letter-spacing: 0.15em;
@@ -56,8 +77,8 @@ a:active {
 
 .button:hover,
 .button:active {
-  color: #eab135;
-  border-color: #eab135;
+  color: var(--accent);
+  border-color: var(--accent);
   transition: background-color 100ms, color 100ms, border 100ms;
 }
 
@@ -70,7 +91,6 @@ h2,
 h3,
 h4 {
   font: normal 800 1em/100% avenir, helvetica, arial, sans-serif;
-  text-transform: uppercase;
   margin: 1em 0 0;
 }
 
@@ -82,55 +102,50 @@ h1 {
 
 h2 {
   font-size: 1.5em;
-  margin: 0 0 0.5em;
+  margin: 0 0 1em;
+  text-transform: uppercase;
 }
 
 h3 {
-  font-size: 1.25em;
+  font-size: 1em;
+  text-transform: uppercase;
 }
 
-h4 {
-  font: normal 800 1em/150% "Gentium Basic", serif;
-}
-
-code {
-  background: #fff;
-  border: 1px solid #eab135;
-  border-left: 10px solid #eab135;
+.code-block {
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-left: 10px solid var(--accent);
   border-radius: 5px;
   display: block;
   font-size: 0.85em;
   line-height: 150%;
   margin: 1em 0;
-  padding: 0.5em 0;
+  padding: 0.5em 1em;
   text-align: left;
   overflow-y: scroll;
 }
 
-pre,
-.command {
-  background: #fff;
-  border: 1px solid #eab135;
-  border-radius: 5px;
-  font-family: monospace;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  display: inline-block;
-  padding: 0 1em;
-}
-
-.command {
-  font-size: 0.85em;
-}
-
-code pre {
+.code-block pre {
   border: none;
   min-width: 400px;
 }
 
+.code-inline {
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  display: inline-block;
+  padding: 0 0.5em;
+  line-height: 1.5;
+}
+
+.monospace {
+  font-family: monospace;
+}
+
 .page {
   margin: 0 auto;
-  max-width: 500px;
+  max-width: 640px;
   padding: 2em 1em;
   position: relative;
 }
@@ -146,18 +161,54 @@ section {
 }
 
 .headline {
-  margin: 0;
+  margin: 0 0 0.25em;
 }
 
 .tagline {
-  color: #6a6a6a;
+  color: var(--muted);
   margin: -0.15em 0 1em;
 }
 
 .target {
   border-radius: 5px;
   margin: 0 auto;
-  max-width: 500px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.9em;
+  margin-top: 0.75em;
+}
+
+/* Settings panel (checkboxes) */
+.settings {
+  display: flex;
+  gap: 1em;
+  flex-wrap: wrap;
+  margin: 1em 0 0;
+  padding: 0.8em 1em;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+}
+
+.settings label {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  font: normal 600 0.8em/100% avenir, helvetica, arial, sans-serif;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 1.05em;
+  height: 1.05em;
+  cursor: pointer;
 }
 
 .share {

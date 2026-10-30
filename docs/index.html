@@ -17,7 +17,7 @@
   <div class="page">
 
     <header>
-      <h1 class="headline">Gif Scratcher</h1>
+      <h1 class="headline">GifScratcher</h1>
 
       <p class="tagline">
         A lightweight dependency-free JavaScript library that allows you to scratch GIFs.
@@ -29,59 +29,96 @@
     <section>
       <h2>Demo</h2>
 
-      <div id="animation-1" class="target">
-        <img src="animations/thumbnail.webp" alt="Burn animation">
+      <div id="animation-1" class="target"></div>
+
+      <div class="settings">
+        <label><input type="checkbox" id="opt-auto" checked> Autoplay</label>
+        <label><input type="checkbox" id="opt-scrub" checked> Scrub on hover</label>
+        <label><input type="checkbox" id="opt-cursor" checked> Custom cursor</label>
+        <label><input type="checkbox" id="opt-player"> Player controls</label>
       </div>
 
-      Move your mouse over the image to scratch it.
+      <p class="hint">Move your mouse over the image to scratch it.</p>
     </section>
 
+    <h2>Documentation</h2>
+
     <section>
-      <h2>Documentation</h2>
+
+      <h3>Using a gif</h3>
 
       <p>
-        Add the first image in your animation to your HTML file.
+        Decoding uses the built-in <code>ImageDecoder</code> API where available
+        (Chrome, Edge, Opera) and falls back to a pure-JS parser
+        (<a href="https://github.com/matt-way/gifuct-js">gifuct-js</a>) on Firefox
+        and Safari.
       </p>
 
-      <code>
-        <pre>&lt;div id="target" class="target"&gt;
-  &lt;img src="animation-first.jpg"&gt;
-&lt;/div&gt;</pre>
+      <code class="code-block">
+        <pre>&lt;div id="target"&gt;&lt;/div&gt;</pre>
       </code>
 
-      <p>
-        Then add the JavaScript magic.
-      </p>
-
-      <code>
+      <code class="code-block">
       <pre>import { GifScratcher } from './javascripts/gifscratcher.js';
 
 new GifScratcher('#target', {
-  sprite : 'animation.jpg',
+  gif : 'animation.gif'
+});</pre>
+      </code>
+
+      <h3>Settings</h3>
+
+      <code class="code-block">
+        <pre>{
+  gif    : string  // Real .gif to decode & scrub
+  auto   : boolean // Autoplay
+  scrub  : boolean // Scrub on hover / drag
+  cursor : boolean // Add custom cursor
+  player : boolean // Show transport controls
+  speed  : number  // Playback speed multiplier
+}</pre>
+      </code>
+    </section>
+
+    <section>
+      <h3>Using a sprite</h3>
+
+      <p>
+        A standalone sprite-strip version is
+        included in the download as <span class="monospace">gifscratcher-sprite.js</span>. Instead
+        of decoding a <span class="monospace">.gif</span> it translates a pre-built horizontal sprite strip on
+        the GPU. Add the first frame as an <code class="code-inline">&lt;img /&gt;</code>
+      </p>
+
+      <code class="code-block">
+        <pre>&lt;div id="target"&gt;
+  &lt;img src="animation-first.webp" /&gt;
+&lt;/div&gt;</pre>
+      </code>
+
+      <code class="code-block">
+      <pre>import { GifScratcherSprite } from './dist/gifscratcher-sprite.js';
+
+new GifScratcherSprite('#target', {
+  sprite : 'animation.webp',
   frames : 10
 });</pre>
       </code>
 
-      <p>
-        Settings available.
-      </p>
+      <h3>Settings</h3>
 
-      <code>
+      <code class="code-block">
         <pre>{
   sprite      : string  // Image sprite
   frames      : int     // Number of frames in sprite
-  interaction : string  // 'hover'
-                        // 'drag'
+  interaction : string  // 'hover' | 'drag'
   auto        : boolean // Autoplay
-  speed       : int     // Autoplay speed
   cursor      : boolean // Add custom cursor
+  speed       : int     // Autoplay speed (rAF ticks per frame)
 }</pre>
       </code>
 
-    </section>
-
-    <section>
-      <h2>Help</h2>
+      <h3>Creating a sprite</h3>
 
       <p>
         To extract every single frame from an animated GIF as individual JPEGs and create a sprite you can use ImageMagick in the terminal.
@@ -89,17 +126,17 @@ new GifScratcher('#target', {
 
       <p>
         Install ImageMagick (macOS):
-        <span class="command">brew install imagemagick</span>
+        <code class="code-inline">brew install imagemagick</code>
       </p>
 
       <p>
         To extract the frames run:
-        <span class="command">magick FILENAME.gif -coalesce %02d.jpg</span>
+        <code class="code-inline">magick FILENAME.gif -coalesce %02d.webp</code>
       </p>
 
       <p>
         To create the sprite run:
-        <span class="command">magick ??.jpg +append FILENAME.jpg</span>
+        <code class="code-inline">magick ??.webp +append FILENAME.webp</code>
       </p>
     </section>
 
@@ -114,13 +151,24 @@ new GifScratcher('#target', {
   <script type="module">
     import { GifScratcher } from './javascripts/gifscratcher.js';
 
-    new GifScratcher('#animation-1', {
-      sprite: 'animations/sprite.webp',
-      frames: 41,
-      interaction: 'hover',
+    const scratcher = new GifScratcher('#animation-1', {
+      gif: 'animations/street.gif',
       auto: true,
-      speed: 4
+      scrub: true,
+      cursor: true,
+      player: false
     });
+
+    // Settings toggles
+    const bind = (id, key) => {
+      document.getElementById(id).addEventListener('change', (e) => {
+        scratcher.setOptions({ [key]: e.target.checked });
+      });
+    };
+    bind('opt-auto', 'auto');
+    bind('opt-scrub', 'scrub');
+    bind('opt-cursor', 'cursor');
+    bind('opt-player', 'player');
   </script>
 </body>
 </html>

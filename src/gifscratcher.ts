@@ -8,82 +8,77 @@
 
 /*! gifscratcher.ts (c) Linus Lundahl | MIT license */
 
+import type { ParsedFrame } from 'gifuct-js';
+
 export interface GifScratcherOptions {
-  /** Image sprite URL */
-  sprite?: string;
-  /** Number of frames in the sprite */
-  frames?: number;
-  /** Interaction mode: 'hover' | 'drag' */
-  interaction?: 'hover' | 'drag';
+  /** URL of a real animated .gif to decode and scrub */
+  gif?: string;
   /** Autoplay the animation */
   auto?: boolean;
+  /** Scrub by moving/dragging over the element */
+  scrub?: boolean;
   /** Add a custom cursor element */
   cursor?: boolean;
-  /** Autoplay speed (delay between frames, in rAF ticks) */
+  /** Render transport controls */
+  player?: boolean;
+  /** Playback speed multiplier */
   speed?: number;
 }
 
-interface ResolvedOptions {
-  sprite: string;
-  frames: number;
-  interaction: 'hover' | 'drag';
-  auto: boolean;
-  cursor: boolean;
-  speed: number;
-}
-
-interface Size {
-  w: number;
-  h: number;
-}
-
-interface Rect {
-  left: number;
-  top: number;
-}
+type ResolvedOptions = Required<GifScratcherOptions>;
 
 const DEFAULTS: ResolvedOptions = {
-  sprite: '',
-  frames: 0,
-  interaction: 'hover',
+  gif: '',
   auto: true,
+  scrub: true,
   cursor: true,
-  speed: 5,
+  player: false,
+  speed: 1,
 };
 
 /**
  * GifScratcher — a dependency-free GIF "scratching" widget.
  *
- * Performance notes:
- * - Frame switching and cursor movement are GPU-composited `transform`s.
- * - The element's bounding rect is cached and only re-measured on
- *   resize/scroll, never inside pointermove handlers (avoids forced layout).
- * - Pointer input is coalesced and applied at most once per animation frame.
+ * It decodes a real animated .gif onto a canvas (using the built-in
+ * ImageDecoder API where available, a pure-JS gifuct-js fallback otherwise)
+ * and lets you scrub, play, pause and step through frames.
+ *
+ * (A standalone sprite-strip variant lives in `gifscratcher-sprite.ts`.)
  *
  * @example
- * new GifScratcher('#target', { sprite: 'animation.jpg', frames: 10 });
+ * new GifScratcher('#target', { gif: 'animation.gif' });
  */
 export class GifScratcher {
-  private readonly settings: ResolvedOptions;
+  private readonly options: ResolvedOptions;
   private readonly el: HTMLElement;
-  private readonly image: HTMLImageElement;
+
+  // Decoded frames and playback timing.
+  private frames: (VideoFrame | ImageBitmap)[] = [];
+  private frameDelay = 100; // ms per frame, read from the file
+  private decoder = '';
+
+  // Playback state.
+  private playing = false;
+  private autoRafId = 0;
+  private lastTick = 0;
+  private acc = 0;
+  private currentFrame = 0;
+  private hovering = false;
+  private scrubbing = false;
+
+  // Canvas + UI.
+  private canvas: HTMLCanvasElement | null = null;
+  private ctx: CanvasRenderingContext2D | null = null;
   private cursor: HTMLElement | null = null;
+  private wrapper: HTMLElement | null = null;
 
-  private size: Size = { w: 0, h: 0 };
-  private rect: Rect = { left: 0, top: 0 };
-  private frameWidth = 0;
-  private oldFrame = 0;
-  private autoFrame = 0;
-  private userAction = false;
-
-  // rAF-coalesced pointer state
-  private pendingX: number | null = null;
-  private pointerRafId = 0;
+  private playerBar: HTMLElement | null = null;
+  private playBtn: HTMLButtonElement | null = null;
+  private slider: HTMLInputElement | null = null;
+  private frameLabel: HTMLSpanElement | null = null;
 
   private readonly abort = new AbortController();
   private readonly signal = this.abort.signal;
-  private resizeObserver: ResizeObserver | null = null;
-  private rafId = 0;
 
   constructor(target: HTMLElement | string, options: GifScratcherOptions = {}) {
     const el =
@@ -95,354 +90,378 @@ export class GifScratcher {
       throw new Error(`GifScratcher: no element found for "${target}".`);
     }
 
-    const img = el.querySelector('img');
-    if (!(img instanceof HTMLImageElement)) {
-      throw new Error('GifScratcher: target element must contain an <img>.');
-    }
-
     this.el = el;
-    this.image = img;
-    this.settings = { ...DEFAULTS, ...options };
+    this.options = { ...DEFAULTS, ...options };
 
-    if (this.settings.sprite) {
-      this.setup();
+    if (!this.options.gif) {
+      throw new Error('GifScratcher: a `gif` source is required.');
+    }
+
+    this.el.classList.add('gifscratcher');
+    this.init();
+  }
+
+  /* ========================================================================
+     Setup / teardown
+     ===================================================================== */
+
+  private async init(): Promise<void> {
+    // Build a canvas inside the target element.
+    this.canvas = document.createElement('canvas');
+    this.canvas.className = 'gs-canvas';
+    this.ctx = this.canvas.getContext('2d')!;
+    this.el.appendChild(this.canvas);
+
+    try {
+      const buf = await (await fetch(this.options.gif)).arrayBuffer();
+      this.frames = await this.decode(buf);
+      this.sizeCanvas();
+
+      if (this.options.cursor) this.buildCursor();
+      if (this.options.player) this.buildPlayer();
+      this.bindInteraction();
+
+      this.render(0);
+      if (this.options.auto) this.play();
+      this.el.dispatchEvent(
+        new CustomEvent('gifscratcher:ready', {
+          detail: { frames: this.frames.length, decoder: this.decoder },
+        })
+      );
+    } catch (err) {
+      console.error('GifScratcher:', err);
+      this.el.dispatchEvent(
+        new CustomEvent('gifscratcher:error', { detail: { error: err } })
+      );
     }
   }
 
   /**
-   * True on devices without hover capability (replaces UA sniffing).
-   */
-  private static get isTouchDevice(): boolean {
-    return window.matchMedia('(hover: none), (pointer: coarse)').matches;
-  }
-
-  /**
-   * Preloads the sprite, then wires up sizing, cursor and interaction.
-   */
-  private setup(): void {
-    this.el.classList.add('gifscratcher');
-    this.image.classList.add('gs-img');
-    this.image.draggable = false;
-
-    this.preload(() => {
-      this.observeResize();
-      this.addCursor();
-
-      if (this.settings.auto) {
-        this.el.classList.add('gs-auto');
-        this.auto();
-      }
-
-      if (GifScratcher.isTouchDevice) {
-        this.el.classList.add('gs-touch');
-        this.touchInteraction();
-      } else {
-        const mode = this.settings.interaction === 'drag' ? 'drag' : 'hover';
-        this.el.classList.add(`gs-${mode}`);
-        if (mode === 'drag') {
-          this.dragInteraction();
-        } else {
-          this.hoverInteraction();
-        }
-        this.hover();
-      }
-    });
-  }
-
-  /**
-   * Removes all listeners, observers, the cursor element and CSS classes.
+   * Removes all listeners, the cursor/player UI and the canvas.
    */
   destroy(): void {
     this.abort.abort();
-    this.resizeObserver?.disconnect();
-    window.cancelAnimationFrame(this.rafId);
-    window.cancelAnimationFrame(this.pointerRafId);
+    window.cancelAnimationFrame(this.autoRafId);
     this.cursor?.remove();
-    this.el.classList.remove(
-      'gifscratcher',
-      'has-gs-cursor',
-      'gs-auto',
-      'gs-touch',
-      'gs-hover',
-      'gs-drag',
-      'active'
-    );
-    this.image.classList.remove('gs-img');
-    this.image.removeAttribute('style');
+    this.teardownPlayer();
+    this.frames.forEach((f) => (f as VideoFrame).close?.());
+    this.frames = [];
+    this.canvas?.remove();
+    this.canvas = null;
+    this.ctx = null;
+    this.el.classList.remove('gifscratcher', 'has-gs-cursor', 'active');
   }
 
   /**
-   * Appends a cursor div to the element.
+   * Update options live, without re-decoding.
    */
-  addCursor(): this {
-    if (this.settings.cursor) {
-      this.el.classList.add('has-gs-cursor');
-      this.cursor = document.createElement('div');
-      this.cursor.classList.add('gs-cursor');
-      this.el.appendChild(this.cursor);
+  setOptions(options: Partial<GifScratcherOptions>): this {
+    const prev = { ...this.options };
+    Object.assign(this.options, options);
+
+    if (options.player !== undefined && options.player !== prev.player) {
+      if (options.player && this.frames.length) this.buildPlayer();
+      else this.teardownPlayer();
+    }
+
+    if (options.cursor !== undefined && options.cursor !== prev.cursor) {
+      if (options.cursor) this.buildCursor();
+      else this.teardownCursor();
+    }
+
+    if (options.auto !== undefined && options.auto !== prev.auto) {
+      if (options.auto && !this.hovering) this.play();
+      else if (!options.auto) this.stop();
     }
 
     return this;
   }
 
-  /**
-   * Preloads the sprite.
-   */
-  preload(callback?: () => void): this {
-    const img = new Image();
-    img.onload = () => {
-      this.image.src = this.settings.sprite;
-      callback?.();
+  /* ========================================================================
+     Decoding
+     ===================================================================== */
+
+  private async decode(buf: ArrayBuffer): Promise<(VideoFrame | ImageBitmap)[]> {
+    // Preferred: the built-in ImageDecoder API (Chrome/Edge/Opera).
+    if ('ImageDecoder' in window) {
+      const decoder = new ImageDecoder({ data: buf, type: 'image/gif' });
+      await decoder.tracks.ready;
+      const track = decoder.tracks.selectedTrack;
+      const out: VideoFrame[] = [];
+      const count = track?.frameCount ?? 0;
+      for (let i = 0; i < count; i++) {
+        const { image } = await decoder.decode({ frameIndex: i });
+        out.push(image);
+        if (i === 0 && image.duration) this.frameDelay = image.duration / 1000;
+      }
+      this.decoder = 'ImageDecoder';
+      return out;
+    }
+
+    // Fallback (Firefox/Safari): parse with gifuct-js and composite frames.
+    return this.decodeWithGifuct(buf);
+  }
+
+  private async decodeWithGifuct(buf: ArrayBuffer): Promise<ImageBitmap[]> {
+    const { parseGIF, decompressFrames } = await import('gifuct-js');
+    const gif = parseGIF(buf);
+    const raw: ParsedFrame[] = decompressFrames(gif, true);
+    if (!raw.length) throw new Error('gifuct-js decoded zero frames.');
+
+    const { width, height } = raw[0].dims;
+
+    const comp = document.createElement('canvas');
+    comp.width = width;
+    comp.height = height;
+    const cctx = comp.getContext('2d')!;
+
+    const patch = document.createElement('canvas');
+    const pctx = patch.getContext('2d')!;
+
+    const out: ImageBitmap[] = [];
+    for (const f of raw) {
+      const { width: w, height: h, top, left } = f.dims;
+      if (f.delay) this.frameDelay = f.delay;
+
+      patch.width = w;
+      patch.height = h;
+      pctx.putImageData(new ImageData(new Uint8ClampedArray(f.patch), w, h), 0, 0);
+      cctx.drawImage(patch, left, top);
+      out.push(await createImageBitmap(comp));
+
+      // Disposal 2 = restore to background (transparent) after the frame.
+      if (f.disposalType === 2) {
+        cctx.clearRect(left, top, w, h);
+      }
+    }
+
+    this.decoder = 'gifuct-js';
+    return out;
+  }
+
+  private sizeCanvas(): void {
+    if (!this.canvas || !this.frames.length) return;
+    const f0 = this.frames[0] as VideoFrame & ImageBitmap;
+    this.canvas.width = f0.displayWidth || f0.codedWidth || f0.width;
+    this.canvas.height = f0.displayHeight || f0.codedHeight || f0.height;
+  }
+
+  /* ========================================================================
+     Playback
+     ===================================================================== */
+
+  /** Render a frame (wraps around). */
+  render(i: number): this {
+    if (!this.frames.length || !this.ctx || !this.canvas) return this;
+    const n = this.frames.length;
+    this.currentFrame = ((i % n) + n) % n;
+    this.ctx.drawImage(this.frames[this.currentFrame], 0, 0, this.canvas.width, this.canvas.height);
+    if (this.slider) this.slider.value = String(this.currentFrame);
+    if (this.frameLabel) this.frameLabel.textContent = `${this.currentFrame + 1}/${n}`;
+    return this;
+  }
+
+  /** Start playback. */
+  play(): this {
+    if (this.playing) return this;
+    this.playing = true;
+    this.syncPlayer();
+    this.lastTick = performance.now();
+    const step = (now: number) => {
+      if (!this.playing) return;
+      this.autoRafId = window.requestAnimationFrame(step);
+      this.acc += now - this.lastTick;
+      this.lastTick = now;
+      const interval = this.frameDelay / Math.max(0.1, this.options.speed);
+      while (this.acc >= interval) {
+        this.acc -= interval;
+        this.render(this.currentFrame + 1);
+      }
     };
-    img.onerror = () => {
-      console.warn(`GifScratcher: failed to load sprite "${this.settings.sprite}".`);
-    };
-    img.src = this.settings.sprite;
-
+    this.autoRafId = window.requestAnimationFrame(step);
     return this;
   }
 
-  /**
-   * Touch interaction: press and move to scratch.
-   */
-  touchInteraction(): this {
-    this.el.style.touchAction = 'none';
-
-    this.el.addEventListener(
-      'pointerdown',
-      () => {
-        this.userAction = true;
-        this.el.classList.add('active');
-      },
-      { signal: this.signal }
-    );
-
-    window.addEventListener(
-      'pointerup',
-      () => {
-        this.userAction = false;
-        this.el.classList.remove('active');
-      },
-      { signal: this.signal }
-    );
-
-    this.el.addEventListener(
-      'pointermove',
-      (e) => {
-        if (this.userAction) {
-          this.queuePlay(e.clientX);
-        }
-      },
-      { signal: this.signal }
-    );
-
+  /** Stop playback. */
+  stop(): this {
+    this.playing = false;
+    window.cancelAnimationFrame(this.autoRafId);
+    this.syncPlayer();
     return this;
   }
 
-  /**
-   * Hover interaction: moving over the element scratches.
-   */
-  hoverInteraction(): this {
-    this.el.addEventListener('pointermove', (e) => this.queuePlay(e.clientX), {
-      signal: this.signal,
-    });
-
-    return this;
+  /** Rewind one frame. */
+  rewind(): this {
+    return this.render(this.currentFrame - 1);
   }
 
-  /**
-   * Drag interaction: press the cursor and move to scratch.
-   */
-  dragInteraction(): this {
+  /** Forward one frame. */
+  forward(): this {
+    return this.render(this.currentFrame + 1);
+  }
+
+  /** The current frame index. */
+  get frame(): number {
+    return this.currentFrame;
+  }
+
+  /** True while playing. */
+  get isPlaying(): boolean {
+    return this.playing;
+  }
+
+  /* ========================================================================
+     Interaction (hover / drag scrub + custom cursor)
+     ===================================================================== */
+
+  private bindInteraction(): void {
+    const c = this.canvas!;
+    c.style.touchAction = 'none';
+
+    c.addEventListener('pointerenter', () => {
+      this.hovering = true;
+      if (this.options.auto) this.stop();
+      this.wrapper?.classList.add('active');
+      this.el.classList.add('active');
+    }, { signal: this.signal });
+
+    c.addEventListener('pointermove', (e) => {
+      if (this.options.scrub) this.scrubTo(e.clientX);
+      this.moveCursor(e.clientX, e.clientY);
+    }, { signal: this.signal });
+
+    c.addEventListener('pointerleave', () => {
+      this.hovering = false;
+      if (this.options.auto && !this.scrubbing) this.play();
+      this.wrapper?.classList.remove('active');
+      this.el.classList.remove('active');
+      if (this.cursor) this.cursor.style.transform = '';
+    }, { signal: this.signal });
+
     let dragging = false;
-    this.el.style.touchAction = 'none';
-
-    const dragTarget = this.cursor ?? this.el;
-
-    dragTarget.addEventListener(
-      'pointerdown',
-      (e) => {
-        e.preventDefault();
-        dragging = true;
-        this.el.setPointerCapture(e.pointerId);
-      },
-      { signal: this.signal }
-    );
-
-    this.el.addEventListener(
-      'pointerup',
-      () => {
-        dragging = false;
-      },
-      { signal: this.signal }
-    );
-
-    this.el.addEventListener(
-      'pointercancel',
-      () => {
-        dragging = false;
-      },
-      { signal: this.signal }
-    );
-
-    this.el.addEventListener(
-      'pointermove',
-      (e) => {
-        if (dragging) {
-          this.queuePlay(e.clientX);
-        }
-      },
-      { signal: this.signal }
-    );
-
-    return this;
-  }
-
-  /**
-   * Autoplays the animation until the user interacts.
-   */
-  auto(): this {
-    let delay = 0;
-
-    const tick = () => {
-      this.rafId = window.requestAnimationFrame(tick);
-      if (!this.userAction && delay === this.settings.speed) {
-        this.switchFrame(this.autoFrame);
-        this.autoFrame =
-          this.autoFrame >= this.settings.frames - 1 ? 0 : this.autoFrame + 1;
-      }
-      delay = delay === this.settings.speed ? 0 : delay + 1;
+    c.addEventListener('pointerdown', (e) => {
+      if (!this.options.scrub) return;
+      dragging = true;
+      this.scrubbing = true;
+      this.stop();
+      c.setPointerCapture(e.pointerId);
+      this.scrubTo(e.clientX);
+    }, { signal: this.signal });
+    c.addEventListener('pointermove', (e) => {
+      if (dragging && this.options.scrub) this.scrubTo(e.clientX);
+    }, { signal: this.signal });
+    const endDrag = () => {
+      dragging = false;
+      this.scrubbing = false;
     };
-    tick();
-
-    return this;
+    c.addEventListener('pointerup', endDrag, { signal: this.signal });
+    c.addEventListener('pointercancel', endDrag, { signal: this.signal });
   }
 
-  /**
-   * Tracks pointer enter/leave to toggle the active state and custom cursor.
-   */
-  hover(): this {
-    this.el.addEventListener(
-      'pointerenter',
-      () => {
-        this.el.classList.add('active');
-        this.userAction = true;
-      },
-      { signal: this.signal }
+  private scrubTo(clientX: number): void {
+    if (!this.frames.length) return;
+    const rect = this.canvas!.getBoundingClientRect();
+    const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+    this.render(Math.floor((x / rect.width) * this.frames.length));
+  }
+
+  /* ========================================================================
+     Custom cursor
+     ===================================================================== */
+
+  private buildCursor(): void {
+    if (this.cursor || !this.options.cursor) return;
+    this.ensureWrapper();
+    this.cursor = document.createElement('div');
+    this.cursor.className = 'gs-cursor';
+    this.cursor.setAttribute('aria-hidden', 'true');
+    this.wrapper!.appendChild(this.cursor);
+    this.wrapper!.classList.add('has-gs-cursor');
+    this.el.classList.add('has-gs-cursor');
+  }
+
+  private ensureWrapper(): void {
+    if (this.wrapper || !this.canvas) return;
+    const w = document.createElement('div');
+    w.className = 'gs-wrap';
+    this.canvas.parentNode?.insertBefore(w, this.canvas);
+    w.appendChild(this.canvas);
+    this.wrapper = w;
+  }
+
+  private moveCursor(clientX: number, clientY: number): void {
+    if (!this.cursor) return;
+    const rect = this.canvas!.getBoundingClientRect();
+    const dx = clientX - rect.left - rect.width / 2;
+    const dy = clientY - rect.top - rect.height / 2;
+    const scale = this.hovering ? 0.85 : 1;
+    this.cursor.style.transform =
+      `translate3d(${dx}px, ${dy}px, 0) translate(-50%, -50%) scale(${scale})`;
+  }
+
+  private teardownCursor(): void {
+    this.cursor?.remove();
+    this.cursor = null;
+    this.wrapper?.classList.remove('has-gs-cursor', 'active');
+    this.el.classList.remove('has-gs-cursor');
+  }
+
+  /* ========================================================================
+     Player UI
+     ===================================================================== */
+
+  private buildPlayer(): void {
+    if (this.playerBar) return;
+    const bar = document.createElement('div');
+    bar.className = 'gs-player';
+
+    const mk = (label: string, title: string, onClick: () => void) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.innerHTML = label;
+      b.title = title;
+      b.addEventListener('click', onClick, { signal: this.signal });
+      return b;
+    };
+
+    this.playBtn = mk('Play', 'Play / pause', () =>
+      this.playing ? this.stop() : this.play()
     );
+    const rew = mk('&#9198;', 'Rewind one frame', () => { this.stop(); this.rewind(); });
+    const fwd = mk('&#9197;', 'Forward one frame', () => { this.stop(); this.forward(); });
 
-    this.el.addEventListener(
-      'pointerleave',
-      () => {
-        this.el.classList.remove('active');
-        this.userAction = false;
-        this.autoFrame = this.oldFrame;
-        if (this.cursor) {
-          this.cursor.style.transform = '';
-        }
-      },
-      { signal: this.signal }
-    );
+    this.slider = document.createElement('input');
+    this.slider.type = 'range';
+    this.slider.min = '0';
+    this.slider.max = String(this.frames.length - 1);
+    this.slider.step = '1';
+    this.slider.value = '0';
+    this.slider.addEventListener('input', () => {
+      this.stop();
+      this.render(Number(this.slider!.value));
+    }, { signal: this.signal });
 
-    if (this.cursor) {
-      this.el.addEventListener(
-        'pointermove',
-        (e) => {
-          // Uses the cached rect — no forced layout. transform is composited.
-          // The cursor's resting spot is the element's center (left/top: 50%),
-          // so translate from that center to the pointer.
-          const dx = e.clientX - this.rect.left - this.size.w / 2;
-          const dy = e.clientY - this.rect.top - this.size.h / 2;
-          const scale = this.userAction ? 0.6 : 1;
-          this.cursor?.style.setProperty(
-            'transform',
-            `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`
-          );
-        },
-        { signal: this.signal }
-      );
+    this.frameLabel = document.createElement('span');
+    this.frameLabel.className = 'gs-frame';
+
+    bar.append(this.playBtn, rew, fwd, this.slider, this.frameLabel);
+    (this.wrapper ?? this.canvas!).insertAdjacentElement('afterend', bar);
+    this.playerBar = bar;
+    this.syncPlayer();
+  }
+
+  private syncPlayer(): void {
+    if (this.playBtn) {
+      this.playBtn.textContent = this.playing ? 'Pause' : 'Play';
+      this.playBtn.setAttribute('aria-pressed', String(this.playing));
     }
-
-    return this;
   }
 
-  /**
-   * Keeps the sprite sized to `frames * container width` and re-measures
-   * whenever the element changes size or the page scrolls.
-   */
-  private observeResize(): void {
-    this.resizeObserver = new ResizeObserver(() => this.resize());
-    this.resizeObserver.observe(this.el);
-
-    // Keep the cached rect fresh on scroll (position changes, size does not).
-    window.addEventListener('scroll', () => this.measure(), {
-      passive: true,
-      signal: this.signal,
-    });
-  }
-
-  /**
-   * Re-measures the element's size and position. Called automatically by the
-   * ResizeObserver and on scroll, but can also be invoked manually.
-   */
-  resize(): this {
-    if (this.image.offsetParent === null) return this;
-
-    this.size = { w: this.el.offsetWidth, h: this.el.offsetHeight };
-    this.frameWidth = this.size.w / this.settings.frames || 0;
-    this.image.style.width = `${this.settings.frames * this.size.w}px`;
-    this.measure();
-    this.play(this.size.w * (this.oldFrame / this.settings.frames));
-
-    return this;
-  }
-
-  /**
-   * Caches the element's viewport offset. Cheap to call occasionally;
-   * expensive to call on every pointermove, so it lives here.
-   */
-  private measure(): void {
-    const r = this.el.getBoundingClientRect();
-    this.rect = { left: r.left, top: r.top };
-  }
-
-  /**
-   * Coalesces pointer input so the frame is updated at most once per
-   * animation frame, no matter how fast pointermove fires.
-   */
-  private queuePlay(clientX: number): void {
-    this.pendingX = clientX;
-    if (this.pointerRafId) return;
-
-    this.pointerRafId = window.requestAnimationFrame(() => {
-      this.pointerRafId = 0;
-      if (this.pendingX !== null) {
-        this.play(this.pendingX - this.rect.left);
-        this.pendingX = null;
-      }
-    });
-  }
-
-  /**
-   * Calculates the current frame from an x coordinate and switches to it.
-   */
-  play(xcoord: number): this {
-    if (!this.frameWidth) return this;
-
-    this.switchFrame(Math.max(0, Math.floor(xcoord / this.frameWidth)));
-
-    return this;
-  }
-
-  /**
-   * Switches frame by translating the sprite (GPU-composited).
-   */
-  switchFrame(frame: number): this {
-    if (frame !== this.oldFrame && frame < this.settings.frames) {
-      this.image.style.transform = `translate3d(${-frame * this.size.w}px, 0, 0)`;
-      this.oldFrame = frame;
-    }
-
-    return this;
+  private teardownPlayer(): void {
+    this.playerBar?.remove();
+    this.playerBar = null;
+    this.playBtn = null;
+    this.slider = null;
+    this.frameLabel = null;
   }
 }

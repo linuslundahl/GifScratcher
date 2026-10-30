@@ -54,6 +54,10 @@ body {
   height: 50px;
   left: 50%;
   margin: -30px 0 0 -30px;
+  /* Purely decorative: never intercept pointer events, otherwise it sits on
+     top of the canvas and breaks hover/scrub detection (pointerenter fires
+     once, then the cursor element swallows the rest). */
+  pointer-events: none;
   position: absolute;
   top: 50%;
   transition: transform 100ms ease-in;
@@ -96,4 +100,78 @@ body {
 
 .gs-touch.active .gs-cursor {
   opacity: 0;
+}
+
+/* =============================================================================
+   Gif mode (canvas + decoded frames)
+   ========================================================================== */
+
+/* Wrapper so the cursor overlay anchors to the canvas */
+.gs-wrap {
+  position: relative;
+  display: block;
+}
+
+.gs-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  cursor: ew-resize;
+}
+
+/* Hide the OS cursor while the custom cursor is shown */
+.gs-wrap.has-gs-cursor .gs-canvas {
+  cursor: none;
+}
+
+/* In gif mode the cursor lives in .gs-wrap and rests centered on the canvas */
+.gs-wrap .gs-cursor {
+  margin: 0;
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+
+/* Player bar */
+.gs-player {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  margin-top: 0.75em;
+}
+
+.gs-player button {
+  background: none;
+  border: 2px solid currentColor;
+  border-radius: 0.3em;
+  color: inherit;
+  font: normal 600 0.85em/100% avenir, helvetica, arial, sans-serif;
+  letter-spacing: 0.05em;
+  padding: 0.55em 0.8em;
+  cursor: pointer;
+  transition: color 150ms, border-color 150ms, background-color 150ms;
+}
+
+.gs-player button:hover {
+  color: #eab135;
+  border-color: #eab135;
+}
+
+.gs-player button[aria-pressed="true"] {
+  color: #eab135;
+  border-color: #eab135;
+}
+
+.gs-player input[type="range"] {
+  flex: 1;
+  min-width: 120px;
+  accent-color: #eab135;
+}
+
+.gs-frame {
+  font-family: monospace;
+  font-size: 0.8em;
+  color: #eab135;
+  min-width: 6ch;
+  text-align: right;
 }
