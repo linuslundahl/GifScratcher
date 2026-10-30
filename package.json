@@ -1,9 +1,10 @@
 {
-  "name": "gifscratcher",
+  "name": "GifScratcher",
   "version": "1.0.0",
-  "description": "A tool for 'scratching' GIFs.",
+  "description": "A standalone, dependency-free browser widget for 'scratching' GIFs. Distributed as built files in dist/ — not an npm package.",
   "license": "MIT",
   "type": "module",
+  "private": true,
   "scripts": {
     "build": "tsc && npm run bundle && npm run sync:docs",
     "bundle": "esbuild build/gifscratcher.js --bundle --format=esm --target=es2020 --sourcemap --outfile=dist/gifscratcher.js && esbuild build/gifscratcher-sprite.js --bundle --format=esm --target=es2020 --sourcemap --outfile=dist/gifscratcher-sprite.js && cp build/gifscratcher.d.ts build/gifscratcher-sprite.d.ts dist/ && cp src/gifscratcher.css dist/",
@@ -12,9 +13,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
+    "gifuct-js": "^2.1.2",
     "typescript": "^5.6.3"
-  },
-  "dependencies": {
-    "gifuct-js": "^2.1.2"
   }
 }

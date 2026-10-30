@@ -1,6 +1,7 @@
 GIF SCRATCHER
 -------------
-A lightweight dependency-free JavaScript library that allows you to scratch GIFs.
+A lightweight, dependency-free browser widget for scratching GIFs. Drop the
+built files from `dist/` onto your page — no build step or npm install required.
 
 ### DEMO
 
